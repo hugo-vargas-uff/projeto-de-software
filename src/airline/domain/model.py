@@ -18,10 +18,17 @@ class StatusReserva(Enum):
 # ----------------------------------
 # agregado voo 
 
+from dataclasses import dataclass
+
 class StatusVoo(Enum):
     AGENDADO = "AGENDADO"
     CANCELADO = "CANCELADO"
     REALIZADO = "REALIZADO"
+
+@dataclass(frozen=True)
+class Trecho:
+    origem: str
+    destino: str
 
 class Voo:
 
