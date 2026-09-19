@@ -177,3 +177,50 @@ class Despacho:
         return sum(volume.peso for volume in self.volumes)
 
 
+
+# Agregado Tripulante
+
+class ErroRegraTripulacao(Exception):
+    pass
+
+
+class CargoTripulante(Enum):
+    PILOTO = "PILOTO"
+    COPILOTO = "COPILOTO"
+    COMISSARIO = "COMISSARIO"
+
+
+class Tripulante:
+    def __init__(self, nome: str, cargo: CargoTripulante, teto_horas: float = 85.0):
+        self.id = uuid.uuid4()
+        self.nome = nome
+        self.cargo = cargo
+        self.teto_horas = teto_horas
+        self.horas_de_voo = 0.0
+
+    def registrar_horas_de_voo(self, horas: float):
+        if self.horas_de_voo + horas > self.teto_horas:
+            raise ErroRegraTripulacao("Teto regulamentar de horas ultrapassado")
+        self.horas_de_voo += horas
+
+    def pode_voar(self, duracao_horas: float) -> bool:
+        return (self.horas_de_voo + duracao_horas) <= self.teto_horas
+
+    def __eq__(self, outro):
+        if not isinstance(outro, Tripulante):
+            return False
+        return self.id == outro.id
+
+    def __hash__(self):
+        return hash(self.id)
+
+    @classmethod
+    def restaurar(cls, id, nome, cargo, teto_horas, horas_de_voo):
+        tripulante = cls.__new__(cls)
+        tripulante.id = id
+        tripulante.nome = nome
+        tripulante.cargo = cargo
+        tripulante.teto_horas = teto_horas
+        tripulante.horas_de_voo = horas_de_voo
+        return tripulante
+
