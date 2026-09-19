@@ -13,3 +13,18 @@ from enum import Enum
 class StatusReserva(Enum):
         CONFIRMADA = "CONFIRMADA"
         CANCELADA = "CANCELADA"
+
+
+# ----------------------------------
+# agregado voo 
+
+class StatusVoo(Enum):
+    AGENDADO = "AGENDADO"
+    CANCELADO = "CANCELADO"
+    REALIZADO = "REALIZADO"
+
+class Voo:
+
+    def __init__(self, numero_voo: str):
+        self.numero_voo = numero_voo
+        self.status = StatusVoo.AGENDADO
