@@ -32,6 +32,7 @@ class Trecho:
 
 class Voo:
 
-    def __init__(self, numero_voo: str):
+    def __init__(self, numero_voo: str, trecho: Trecho=None):
         self.numero_voo = numero_voo
+        self.trecho=trecho
         self.status = StatusVoo.AGENDADO
