@@ -20,6 +20,9 @@ class StatusReserva(Enum):
 
 from dataclasses import dataclass
 
+class ErroRegraVoo(Exception):
+    pass
+
 class StatusVoo(Enum):
     AGENDADO = "AGENDADO"
     CANCELADO = "CANCELADO"
@@ -37,6 +40,14 @@ class Voo:
         self.status = StatusVoo.AGENDADO
 
     def cancelar(self):
+        if self.status == StatusVoo.REALIZADO:
+            raise ErroRegraVoo("voo realizado, nao pode ser cancelado")
+        if self.status == StatusVoo.CANCELADO:
+            raise ErroRegraVoo("Voo ja estava cancelado")
+        
         self.status = StatusVoo.CANCELADO
+        
     def realizar(self):
+        if self.status != StatusVoo.AGENDADO:
+            raise ErroRegraVoo("So pode realizar voos que estao agendados")
         self.status=StatusVoo.REALIZADO
