@@ -224,3 +224,43 @@ class Tripulante:
         tripulante.horas_de_voo = horas_de_voo
         return tripulante
 
+
+    
+
+# Agregado Escalas
+
+
+class Escala:
+    def __init__(self, voo_id: str):
+        self.id = uuid.uuid4()
+        self.voo_id = voo_id
+        self.tripulantes_ids = []
+
+    def adicionar_tripulante(self, tripulante_id):
+        if tripulante_id in self.tripulantes_ids:
+            raise ErroRegraTripulacao("Tripulante ja escalado para este voo")
+        self.tripulantes_ids.append(tripulante_id)
+
+    def remover_tripulante(self, tripulante_id):
+        if tripulante_id in self.tripulantes_ids:
+            self.tripulantes_ids.remove(tripulante_id)
+
+    def total_tripulantes(self) -> int:
+        return len(self.tripulantes_ids)
+
+    def __eq__(self, outra):
+        if not isinstance(outra, Escala):
+            return False
+        return self.id == outra.id
+
+    def __hash__(self):
+        return hash(self.id)
+
+    @classmethod
+    def restaurar(cls, id, voo_id, tripulantes_ids):
+        escala = cls.__new__(cls)
+        escala.id = id
+        escala.voo_id = voo_id
+        escala.tripulantes_ids = list(tripulantes_ids)
+        return escala
+
