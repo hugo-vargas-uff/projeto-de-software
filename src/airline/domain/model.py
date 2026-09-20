@@ -35,6 +35,8 @@ class Voo:
         self.numero_voo = numero_voo
         self.trecho=trecho
         self.status = StatusVoo.AGENDADO
-        
+
     def cancelar(self):
         self.status = StatusVoo.CANCELADO
+    def realizar(self):
+        self.status=StatusVoo.REALIZADO
