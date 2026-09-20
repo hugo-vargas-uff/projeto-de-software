@@ -1,4 +1,5 @@
-from airline.domain.model import Voo, StatusVoo, Trecho
+import pytest
+from airline.domain.model import Voo, StatusVoo, Trecho, ErroRegraVoo
 
 def test_deve_criar_voo_agendado():
     trecho_ida = Trecho(origem="RJ", destino="SP")
@@ -36,3 +37,19 @@ def test_realizar_voo():
     assert voo.status == StatusVoo.AGENDADO #tem que estar agendado primeiro
     voo.realizar()
     assert voo.status == StatusVoo.REALIZADO
+
+def test_erro_realizar_um_voo_ja_cancelado():
+    voo = Voo(numero_voo="MV-777", trecho=Trecho(origem="SP", destino="RJ"))
+    voo.cancelar() #primeiro cancela o voo
+    #tenta realizar e espera que de erro
+    with pytest.raises(ErroRegraVoo):
+        voo.realizar()
+
+def test_erro_cancelar_um_voo_ja_realizado():
+    rota = Trecho(origem="SP", destino="RJ")
+    decolado = Voo(numero_voo="MV-999", trecho=rota)
+    
+    decolado.realizar() #realiza o voo primeiro
+    #espera erro ao cancelar
+    with pytest.raises(ErroRegraVoo):
+        decolado.cancelar()
