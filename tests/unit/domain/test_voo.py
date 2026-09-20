@@ -28,3 +28,11 @@ def test_cancelar_voo():
     assert voo.status == StatusVoo.AGENDADO #para evitar falso positivo, verifica antes se ja nao estava cancelado
     voo.cancelar()
     assert voo.status == StatusVoo.CANCELADO
+
+def test_realizar_voo():
+    rota = Trecho(origem="RJ", destino="SP")
+    voo = Voo(numero_voo="DOG-2", trecho=rota)
+    
+    assert voo.status == StatusVoo.AGENDADO #tem que estar agendado primeiro
+    voo.realizar()
+    assert voo.status == StatusVoo.REALIZADO
