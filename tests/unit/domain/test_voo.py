@@ -20,3 +20,11 @@ def test_igualdade_de_trechos():
     assert trecho1==trecho2 #iguais
     trechoDif= Trecho(origem="SP", destino="SC")
     assert trechoDif!=trecho1 #sim, sao diferentes
+
+def test_cancelar_voo():
+    rota = Trecho(origem="SP", destino="RJ")
+    voo = Voo(numero_voo="DOG-1", trecho=rota)
+
+    assert voo.status == StatusVoo.AGENDADO #para evitar falso positivo, verifica antes se ja nao estava cancelado
+    voo.cancelar()
+    assert voo.status == StatusVoo.CANCELADO
