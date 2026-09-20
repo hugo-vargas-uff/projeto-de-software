@@ -31,8 +31,10 @@ class Trecho:
     destino: str
 
 class Voo:
-
     def __init__(self, numero_voo: str, trecho: Trecho=None):
         self.numero_voo = numero_voo
         self.trecho=trecho
         self.status = StatusVoo.AGENDADO
+        
+    def cancelar(self):
+        self.status = StatusVoo.CANCELADO
