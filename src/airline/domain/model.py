@@ -69,3 +69,32 @@ class Aeronave:
             return False
 
         return self.prefixo == outra.prefixo
+
+
+
+
+# agregado despacho
+class ErroRegraDespacho(Exception):
+    pass
+
+@dataclass(frozen=True)
+class Volume:
+    peso: float
+
+class Despacho:
+    def __init__(self, carga_maxima: float):
+        self.carga_maxima = carga_maxima
+        self.volumes = []
+
+    def adicionar_volume(self, volume):
+        novo_peso = self.peso_total() + volume.peso
+
+        if novo_peso > self.carga_maxima:
+            raise ErroRegraDespacho(
+                "Peso total dos volumes ultrapassa a carga maxima da aeronave"
+            )
+
+        self.volumes.append(volume)
+
+    def peso_total(self):
+        return sum(volume.peso for volume in self.volumes)
