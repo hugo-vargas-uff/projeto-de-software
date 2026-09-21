@@ -214,3 +214,39 @@ Criei StatusReserva("CONFIRMADA", "CANCELADA") para padronizar valores.
 
 Passageiro possui um identificador unico(UUID), nome e CPF.
 adicionei cpf para servir como um identificador externo para facilitar futuras buscas por passageiros.
+
+
+
+# Agregados Tripulante e Escala — Filipe Moreira
+
+## Checkpoint 1 — Domínio da Tripulação e Escala
+
+Arquivos: `src/airline/domain/model.py`, `tests/unit/domain/test_tripulante.py`, `tests/unit/domain/test_escala.py`, `DECISIONS.md`
+
+Commits:
+- 761b2b4 — 19/09 — test: cria testes unitarios para criacao e invariante de horas do Tripulante
+- 8f4b87e — 19/09 — feat: implementa entidade Tripulante com controle de teto de horas
+- bd87044 — 20/09 — test: adiciona testes de alocacao de tripulantes na Escala
+- <hash_commit_4> — 20/09 — feat: implementa agregado Escala com protecao contra tripulante duplicado
+
+### 1. O que eu fiz neste checkpoint
+
+Neste checkpoint implementei as classes de domínio `Tripulante` e `Escala`, responsáveis pelo gerenciamento da tripulação e escalonamento dos voos da companhia aérea. Antes de implementar cada entidade, criei os testes unitários cobrindo criação, invariantes e regras de negócio no estilo TDD.
+
+### 2. Decisão: Tripulante é entidade com identidade própria
+
+Decidi tratar `Tripulante` como uma entidade (com `id` via `uuid.uuid4()`) porque cada profissional possui uma identidade própria que persiste ao longo do tempo, independentemente de mudanças em seu cargo ou acúmulo de horas voadas. Usei `Enum` (`CargoTripulante`) para padronizar os papéis a bordo (Piloto, Copiloto, Comissário).
+
+### 3. Decisão: Invariante do teto regulamentar de horas no Tripulante
+
+A regra de negócio central da tripulação é que a soma de horas de voo de um tripulante não pode ultrapassar o teto regulamentar do período (definido por padrão como 85h, em conformidade com as normas da aviação civil).
+Decidi encapsular essa verificação no método `registrar_horas_de_voo(horas)` da própria entidade `Tripulante`. Caso o acréscimo exceda o teto permitido, a entidade lança a exceção de domínio `ErroRegraTripulacao`, garantindo que o objeto nunca fique em estado inválido. Também adicionei o método `pode_voar(duracao_horas)` para pré-validação antes da alocação.
+
+### 4. Decisão: Escala como agregado desacoplado referenciando IDs
+
+A `Escala` representa a tripulação montada para atender a um voo específico. Seguindo as boas práticas de Domain-Driven Design (DDD) sobre limites de agregados, a `Escala` referencia tanto o voo (`voo_id`) quanto os tripulantes (`tripulantes_ids`) apenas por seus identificadores, sem carregar instâncias completas.
+A raiz do agregado `Escala` protege a invariante de não permitir tripulantes duplicados no mesmo voo, lançando `ErroRegraTripulacao` caso alguém tente adicionar o mesmo `tripulante_id` duas vezes.
+
+### 5. Uso de IA
+
+Conforme a Seção 2.5 da especificação, usei IA generativa apenas para tirar dúvidas conceituais sobre design de agregados em DDD e para revisar a estruturação das invariantes. O código implementado e testado no projeto foi escrito por mim.
