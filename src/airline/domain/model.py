@@ -68,11 +68,17 @@ class Voo:
 # Agregado Aeronave
 
 class Aeronave:
-    def __init__(self, prefixo: str, modelo: str, capacidade: int):
+    def __init__(
+        self,
+        prefixo: str,
+        modelo: str,
+        capacidade: int,
+        validade_vistoria
+    ):
         self.prefixo = prefixo
         self.modelo = modelo
         self.capacidade = capacidade
-        self.disponivel = True
+        self.validade_vistoria = validade_vistoria
 
     def __eq__(self, outra):
         if not isinstance(outra, Aeronave):
@@ -82,6 +88,9 @@ class Aeronave:
 
     def __hash__(self):
         return hash(self.prefixo)
+
+    def esta_disponivel(self, hoje):
+        return self.validade_vistoria >= hoje
 
 
 
