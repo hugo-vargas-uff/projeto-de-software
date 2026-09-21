@@ -51,3 +51,21 @@ class Voo:
         if self.status != StatusVoo.AGENDADO:
             raise ErroRegraVoo("So pode realizar voos que estao agendados")
         self.status=StatusVoo.REALIZADO
+
+
+
+
+# Agregado Aeronave
+
+class Aeronave:
+    def __init__(self, prefixo: str, modelo: str, capacidade: int):
+        self.prefixo = prefixo
+        self.modelo = modelo
+        self.capacidade = capacidade
+        self.disponivel = True
+
+    def __eq__(self, outra):
+        if not isinstance(outra, Aeronave):
+            return False
+
+        return self.prefixo == outra.prefixo
