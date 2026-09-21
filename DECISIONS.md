@@ -21,3 +21,34 @@ Em vez de deixar o status do voo ser alterado livremente de fora da classe, deci
 2026-09-20
 
 Inicialmente pensei em criar um método para voltar o status de CANCELADO para AGENDADO. Mas, olhando para a situação real, um voo cancelado envolve mudanças que vão além do próprio status. Se a companhia precisar daquela rota novamente, o correto é instanciar um Voo novo. Por isso, decidi que um voo cancelado (ou realizado) não pode mais mudar de status.
+
+# Agregado Aeronave — Matheus Andrade
+
+## 1. O que eu fiz neste checkpoint
+
+Neste checkpoint criei a classe Aeronave, que representa uma aeronave dentro do domínio do sistema. Antes de criar a classe, escrevi os testes para criação, igualdade, diferença entre aeronaves e disponibilidade inicial.
+
+## 2. Arquivos e commits
+
+- tests/unit/domain/test_aeronave.py, 
+- src/airline/domain/model.py, bloco Aeronave
+
+## 3. Decisão: Aeronave é entidade, não objeto de valor
+2026-09-20
+
+Decidi tratar Aeronave como uma entidade porque ela possui uma identidade própria, representada pelo prefixo. Duas aeronaves com o mesmo prefixo representam a mesma aeronave, mesmo que outros dados, como modelo ou capacidade, estejam diferentes. Isso é diferente do Trecho criado pelo Verdan, que é um objeto de valor e depende dos seus atributos para definir igualdade. Também não usei frozen=True, porque a aeronave vai precisar mudar de estado no futuro, por exemplo quando entrar ou sair de manutenção.
+
+## 4. Decisão: disponivel como atributo
+2026-09-20
+
+Por enquanto decidi guardar disponivel como um atributo da aeronave, iniciando com o valor True. Fiz assim porque ainda não existe a OrdemManutencao no código e essa foi a forma mais simples de atender os testes atuais.
+
+Essa solução tem uma limitação: o atributo pode ser alterado diretamente por qualquer parte do código, sem passar por uma regra do domínio. Quando a OrdemManutencao for criada, pretendo revisar isso para que a disponibilidade dependa das regras de manutenção e não apenas de uma alteração manual no atributo.
+
+## 5. Próximos passos
+
+Os próximos passos são avaliar o uso de `__hash__`, implementar a regra de vistoria vencida, criar a OrdemManutencao e garantir a regra de que uma aeronave com manutenção pendente não esteja disponível.
+
+## 6. Uso de IA
+
+Usei IA para tirar dúvidas sobre entidade e objeto de valor, entender melhor `__eq__` e `__hash__`, ajudar a interpretar erros de ambiente e revisar o código que eu escrevi. O código utilizado no projeto foi escrito por mim.
