@@ -52,3 +52,27 @@ Os próximos passos são avaliar o uso de `__hash__`, implementar a regra de vis
 ## 6. Uso de IA
 
 Usei IA para tirar dúvidas sobre entidade e objeto de valor, entender melhor `__eq__` e `__hash__`, ajudar a interpretar erros de ambiente e revisar o código que eu escrevi. O código utilizado no projeto foi escrito por mim.
+
+# Agregado Reserva
+
+## Entidade Reserva
+2026-09-21
+
+Reserva é entidade pois possui um identificador unico para diferenciar de outras reservas.
+
+Reserva possui um identificador unico(UUID), voo_id(Voo para qual foi feita a reserva), passageiro_id(identificador do passageiro que fez a reserva) e um ENUM StatusReserva.
+
+### Metodo cancelar
+Metodo usado para cancelar uma reserva feita por um passageiro
+
+## StatusReserva
+2026-09-21
+
+Criei StatusReserva("CONFIRMADA", "CANCELADA") para padronizar valores.
+
+# Agregado Passageiro
+
+## Entidade Passageiro
+
+Passageiro possui um identificador unico(UUID), nome e CPF.
+adicionei cpf para servir como um identificador externo para facilitar futuras buscas por passageiros.
