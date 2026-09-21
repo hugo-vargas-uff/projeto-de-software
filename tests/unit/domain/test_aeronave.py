@@ -53,3 +53,18 @@ def test_aeronave_nova_deve_estar_disponivel():
     )
 
     assert aeronave.disponivel is True
+
+def test_aeronaves_com_mesmo_prefixo_tem_mesmo_hash():
+    aeronave1 = Aeronave(
+        prefixo="PT-MVA",
+        modelo="Boeing 737",
+        capacidade=180
+    )
+
+    aeronave2 = Aeronave(
+        prefixo="PT-MVA",
+        modelo="Airbus A320",
+        capacidade=200
+    )
+
+    assert hash(aeronave1) == hash(aeronave2)
