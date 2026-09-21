@@ -79,6 +79,7 @@ class Aeronave:
         self.modelo = modelo
         self.capacidade = capacidade
         self.validade_vistoria = validade_vistoria
+        self.ordens_manutencao = []
 
     def __eq__(self, outra):
         if not isinstance(outra, Aeronave):
@@ -89,8 +90,37 @@ class Aeronave:
     def __hash__(self):
         return hash(self.prefixo)
 
+    def abrir_ordem_manutencao(self, descricao: str):
+        ordem = OrdemManutencao(descricao)
+        self.ordens_manutencao.append(ordem)
+        return ordem
+
+    def concluir_ordem_manutencao(self, ordem):
+        ordem.concluir()
+
     def esta_disponivel(self, hoje):
-        return self.validade_vistoria >= hoje
+        vistoria_valida = self.validade_vistoria >= hoje
+
+        possui_manutencao_pendente = any(
+            ordem.status == StatusOrdemManutencao.PENDENTE
+            for ordem in self.ordens_manutencao
+        )
+
+        return vistoria_valida and not possui_manutencao_pendente
+
+    
+class StatusOrdemManutencao(Enum):
+    PENDENTE = "PENDENTE"
+    CONCLUIDA = "CONCLUIDA"
+
+
+class OrdemManutencao:
+    def __init__(self, descricao: str):
+        self.descricao = descricao
+        self.status = StatusOrdemManutencao.PENDENTE
+
+    def concluir(self):
+        self.status = StatusOrdemManutencao.CONCLUIDA
 
 
 
@@ -120,3 +150,5 @@ class Despacho:
 
     def peso_total(self):
         return sum(volume.peso for volume in self.volumes)
+
+
