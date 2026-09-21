@@ -80,6 +80,9 @@ class Aeronave:
 
         return self.prefixo == outra.prefixo
 
+    def __hash__(self):
+        return hash(self.prefixo)
+
 
 
 
