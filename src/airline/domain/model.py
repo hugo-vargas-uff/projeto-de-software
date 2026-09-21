@@ -1,12 +1,22 @@
+import uuid
+
 class Reserva:
 
     def __init__(self, voo_id, passageiro_id):
+        self.id = uuid.uuid4()
         self.voo_id = voo_id
         self.passageiro_id = passageiro_id
         self.status = StatusReserva.CONFIRMADA
 
     def cancelar(self):
         self.status = StatusReserva.CANCELADA
+
+class Passageiro:
+
+    def __init__(self, nome, cpf):
+        self.id = uuid.uuid4()
+        self.nome = nome
+        self.cpf = cpf
 
 from enum import Enum
 
