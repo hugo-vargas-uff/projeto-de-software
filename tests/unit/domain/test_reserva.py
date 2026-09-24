@@ -4,10 +4,7 @@ def test_deve_criar_reserva_confirmada():
     voo_id = "voo-123"
     passageiro_id = "passageiro-123"
 
-    reserva = Reserva(
-        voo_id=voo_id,
-        passageiro_id=passageiro_id,
-    )
+    reserva = Reserva(voo_id=voo_id, passageiro_id=passageiro_id)
 
     assert reserva.voo_id == voo_id
     assert reserva.passageiro_id == passageiro_id
@@ -17,10 +14,7 @@ def test_deve_cancelar_uma_reserva():
     voo_id = "voo-123"
     passageiro_id = "passageiro-123"
 
-    reserva = Reserva(
-        voo_id=voo_id,
-        passageiro_id=passageiro_id,
-    )
+    reserva = Reserva(voo_id=voo_id, passageiro_id=passageiro_id)
 
     reserva.cancelar()
 
