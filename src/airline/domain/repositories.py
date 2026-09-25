@@ -52,3 +52,30 @@ class VooRepository(ABC):
     @abstractmethod
     def buscar(self, numero_voo: str):
         pass
+
+
+
+
+from airline.domain.model import Tripulante, Escala
+
+
+class TripulanteRepository(ABC):
+
+    @abstractmethod
+    def salvar(self, tripulante: Tripulante) -> None:
+        pass
+
+    @abstractmethod
+    def buscar_por_id(self, tripulante_id) -> Tripulante:
+        pass
+
+
+class EscalaRepository(ABC):
+
+    @abstractmethod
+    def salvar(self, escala: Escala) -> None:
+        pass
+
+    @abstractmethod
+    def buscar_por_voo(self, voo_id: str) -> Escala:
+        pass
