@@ -44,9 +44,11 @@ class Trecho:
     destino: str
 
 class Voo:
-    def __init__(self, numero_voo: str, trecho: Trecho=None):
+    def __init__(self, numero_voo: str, trecho: Trecho=None, aeronave_id: str=None, capacidade_assentos: int=0):
         self.numero_voo = numero_voo
         self.trecho=trecho
+        self.aeronave_id = aeronave_id
+        self.assentos_disponiveis = capacidade_assentos
         self.status = StatusVoo.AGENDADO
 
     def cancelar(self):
@@ -54,7 +56,7 @@ class Voo:
             raise ErroRegraVoo("voo realizado, nao pode ser cancelado")
         if self.status == StatusVoo.CANCELADO:
             raise ErroRegraVoo("Voo ja estava cancelado")
-        
+
         self.status = StatusVoo.CANCELADO
         
     def realizar(self):
