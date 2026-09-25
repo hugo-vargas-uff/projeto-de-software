@@ -3,7 +3,7 @@ from airline.service_layer.services import (
     ReservaRepository,
     PassageiroRepository
 )
-from orm import ReservaModel, PassageiroModel
+from airline.adapters.orm import ReservaModel, PassageiroModel
 
 class SqlAlchemyReservaRepository(ReservaRepository):
 
