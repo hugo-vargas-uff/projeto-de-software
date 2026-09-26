@@ -22,6 +22,12 @@ Em vez de deixar o status do voo ser alterado livremente de fora da classe, deci
 
 Inicialmente pensei em criar um método para voltar o status de CANCELADO para AGENDADO. Mas, olhando para a situação real, um voo cancelado envolve mudanças que vão além do próprio status. Se a companhia precisar daquela rota novamente, o correto é instanciar um Voo novo. Por isso, decidi que um voo cancelado (ou realizado) não pode mais mudar de status.
 
+## Invariante de lotação movida para o Voo
+2026-09-24
+Percebi que no modelo original, a regra de não exceder a capacidade do voo estava atribuída ao agregado Reserva. Isso não funcionaria na prática porque a Reserva não tem acesso ao número total de assentos nem sabe quantas outras reservas existem. Movi essa responsabilidade para o Voo, que agora recebe a capacidade da aeronave no momento da criação e controla a alocação de
+assentos internamente com o método alocar_assento().
+
+
 # Agregado Aeronave — Matheus Andrade
 
 ## 1. O que eu fiz neste checkpoint
