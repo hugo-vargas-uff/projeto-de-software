@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from airline.domain.model import Reserva, Passageiro, Aeronave
+from airline.domain.model import Reserva, Passageiro, Aeronave, Voo
 
 
 class ReservaRepository(ABC):
@@ -36,4 +36,15 @@ class AeronaveRepository(ABC):
 
     @abstractmethod
     def buscar(self, prefixo: str):
+        pass
+
+
+class VooRepository(ABC):
+
+    @abstractmethod
+    def salvar(self, voo: Voo) -> None:
+        pass
+
+    @abstractmethod
+    def buscar(self, numero_voo: str):
         pass
