@@ -69,3 +69,27 @@ def test_buscar_voo_inexistente(session):
     resultado = repo.buscar("NAO-EXISTE")
     
     assert resultado is None
+
+
+def test_salvar_voo_existente_atualiza_status(session):
+    repo = SqlAlchemyVooRepository(session)
+    repo.salvar(Voo( numero_voo="MV-300",trecho=Trecho("GRU", "POA"),
+    aeronave_id="PR-400", capacidade_assentos=150,))
+    session.commit()
+
+    #busca,muda pelo metodo do dominio e salva de novo
+    voo = repo.buscar("MV-300")
+    voo.cancelar()
+    repo.salvar(voo)
+    session.commit()
+
+    #confere direto no banco se foi atualizado, e nao duplicado
+    query = text("""
+    SELECT status 
+    FROM voos WHERE numero_voo = 'MV-300'
+    """)
+    linhas = session.execute(query).fetchall()
+
+    assert len(linhas) == 1
+    assert linhas[0][0] == "CANCELADO"
+
