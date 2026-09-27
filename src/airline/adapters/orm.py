@@ -1,6 +1,6 @@
-from sqlalchemy import Column, String, Enum, Integer
-from sqlalchemy.orm import declarative_base
-from airline.domain.model import StatusReserva
+from sqlalchemy import Column, String, Enum, Integer, Date, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship
+from airline.domain.model import StatusReserva, StatusOrdemManutencao
 
 Base = declarative_base()
 
@@ -30,4 +30,43 @@ class VooModel(Base):
     aeronave_id = Column(String(20), nullable=False)
     assentos_disponiveis = Column(Integer, nullable=False)
     status = Column(String(20), nullable=False)
+
+
+
+
+
+#---Aeronave
+
+
+class AeronaveModel(Base):
+    __tablename__ = "aeronaves"
+
+    prefixo = Column(String(20), primary_key=True)
+    modelo = Column(String(100), nullable=False)
+    capacidade = Column(Integer, nullable=False)
+    validade_vistoria = Column(Date, nullable=False)
+
+    ordens_manutencao = relationship(
+        "OrdemManutencaoModel",
+        back_populates="aeronave",
+        cascade="all, delete-orphan"
+    )
+
+
+class OrdemManutencaoModel(Base):
+    __tablename__ = "ordens_manutencao"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    aeronave_prefixo = Column(
+        String(20),
+        ForeignKey("aeronaves.prefixo"),
+        nullable=False
+    )
+    descricao = Column(String(255), nullable=False)
+    status = Column(Enum(StatusOrdemManutencao), nullable=False)
+
+    aeronave = relationship(
+        "AeronaveModel",
+        back_populates="ordens_manutencao"
+    )
 
