@@ -1,8 +1,8 @@
-from airline.domain.model import Reserva, Passageiro, Voo, Aeronave, Trecho, StatusVoo, StatusOrdemManutencao, StatusReserva
-from airline.domain.repositories import VooRepository
+from airline.domain.model import Reserva, Passageiro, Voo, Aeronave, Trecho, StatusVoo, StatusOrdemManutencao, StatusReserva, Tripulante, CargoTripulante, Escala
+from airline.domain.repositories import VooRepository, TripulanteRepository, EscalaRepository 
 
-from airline.adapters.orm import ReservaModel, PassageiroModel, VooModel, AeronaveModel, OrdemManutencaoModel
-
+from airline.adapters.orm import ReservaModel, PassageiroModel, VooModel, AeronaveModel, OrdemManutencaoModel, TripulanteModel, EscalaModel, EscalaTripulanteModel
+import uuid
 from airline.domain.repositories import AeronaveRepository, ReservaRepository, PassageiroRepository
 
 class SqlAlchemyReservaRepository(ReservaRepository):
@@ -157,4 +157,55 @@ class SqlAlchemyAeronaveRepository(AeronaveRepository):
                 aeronave.concluir_ordem_manutencao(ordem)
 
         return aeronave
+
+    
+
+# --- Tripulante e Escala
+
+class SqlAlchemyTripulanteRepository(TripulanteRepository):
+
+    def __init__(self, session):
+        self.session = session
+
+    def salvar(self, tripulante: Tripulante) -> None:
+        model = self.session.query(TripulanteModel).filter_by(id=str(tripulante.id)).first()
+        if model is None:
+            model = TripulanteModel.from_domain(tripulante)
+            self.session.add(model)
+        else:
+            model.nome = tripulante.nome
+            model.cargo = tripulante.cargo.value
+            model.teto_horas = tripulante.teto_horas
+            model.horas_de_voo = tripulante.horas_de_voo
+        self.session.commit()
+
+    def buscar_por_id(self, tripulante_id):
+        model = self.session.query(TripulanteModel).filter_by(id=str(tripulante_id)).first()
+        if model is None:
+            return None
+        return model.to_domain()
+
+
+class SqlAlchemyEscalaRepository(EscalaRepository):
+
+    def __init__(self, session):
+        self.session = session
+
+    def salvar(self, escala: Escala) -> None:
+        model = self.session.query(EscalaModel).filter_by(id=str(escala.id)).first()
+        if model is None:
+            model = EscalaModel.from_domain(escala)
+            self.session.add(model)
+        else:
+            model.voo_id = escala.voo_id
+            model.tripulantes.clear()
+            for t_id in escala.tripulantes_ids:
+                model.tripulantes.append(EscalaTripulanteModel(tripulante_id=str(t_id)))
+        self.session.commit()
+
+    def buscar_por_voo(self, voo_id: str):
+        model = self.session.query(EscalaModel).filter_by(voo_id=str(voo_id)).first()
+        if model is None:
+            return None
+        return model.to_domain()
 
