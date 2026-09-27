@@ -1,9 +1,10 @@
-from airline.domain.model import Reserva, Passageiro
+from airline.domain.model import Reserva, Passageiro, Voo, Trecho, StatusVoo
+from airline.domain.repositories import VooRepository
 from airline.service_layer.services import (
     ReservaRepository,
     PassageiroRepository
 )
-from airline.adapters.orm import ReservaModel, PassageiroModel
+from airline.adapters.orm import ReservaModel, PassageiroModel, VooModel
 
 class SqlAlchemyReservaRepository(ReservaRepository):
 
@@ -45,3 +46,38 @@ class SqlAlchemyPassageiroRepository(PassageiroRepository):
 
     def buscar(self, passageiro_id):
         ...
+
+
+class SqlAlchemyVooRepository(VooRepository):
+    
+    def __init__(self, session):
+        self.session = session
+
+    def salvar(self, voo: Voo) -> None:
+        voo_model = VooModel(
+            numero_voo=voo.numero_voo,
+            origem=voo.trecho.origem,
+            destino=voo.trecho.destino,
+            aeronave_id=voo.aeronave_id,
+            assentos_disponiveis=voo.assentos_disponiveis,
+            status=voo.status.value #enum string
+        )
+        self.session.add(voo_model)
+
+
+    def buscar(self, numero_voo: str):
+        voo_model = self.session.query(VooModel).filter_by(numero_voo=numero_voo).first()
+        
+        if voo_model is None: #teste1
+            return None
+
+        voo_reconstruido = Voo( #teste2
+            numero_voo=voo_model.numero_voo,
+            trecho=Trecho(voo_model.origem, voo_model.destino),
+            aeronave_id=voo_model.aeronave_id,
+            capacidade_assentos=voo_model.assentos_disponiveis,
+        )
+        
+        voo_reconstruido.status = StatusVoo(voo_model.status) 
+        
+        return voo_reconstruido
