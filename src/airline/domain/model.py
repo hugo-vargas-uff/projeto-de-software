@@ -44,7 +44,7 @@ class Trecho:
     destino: str
 
 class Voo:
-    def __init__(self, numero_voo: str, trecho: Trecho=None, aeronave_id: str=None, capacidade_assentos: int=0):
+    def __init__(self, numero_voo: str, trecho: Trecho, aeronave_id: str, capacidade_assentos: int):
         self.numero_voo = numero_voo
         self.trecho=trecho
         self.aeronave_id = aeronave_id
