@@ -227,7 +227,7 @@ Commits:
 - 761b2b4 — 19/09 — test: cria testes unitarios para criacao e invariante de horas do Tripulante
 - 8f4b87e — 19/09 — feat: implementa entidade Tripulante com controle de teto de horas
 - bd87044 — 20/09 — test: adiciona testes de alocacao de tripulantes na Escala
-- <hash_commit_4> — 20/09 — feat: implementa agregado Escala com protecao contra tripulante duplicado
+- d402dac  — 20/09 — feat: implementa agregado Escala com protecao contra tripulante duplicado
 
 ### 1. O que eu fiz neste checkpoint
 
@@ -250,3 +250,39 @@ A raiz do agregado `Escala` protege a invariante de não permitir tripulantes du
 ### 5. Uso de IA
 
 Conforme a Seção 2.5 da especificação, usei IA generativa apenas para tirar dúvidas conceituais sobre design de agregados em DDD e para revisar a estruturação das invariantes. O código implementado e testado no projeto foi escrito por mim.
+
+
+## Checkpoint 2 — Repositórios e Persistência da Tripulação e Escala
+
+Arquivos: `src/airline/domain/repositories.py`, `tests/unit/service_layer/test_tripulacao_service.py`, `src/airline/adapters/orm.py`, `src/airline/adapters/repository.py`, `tests/integration/adapter/test_SqlAlchemyTripulanteRepository.py`, `DECISIONS.md`
+
+Commits:
+- f4a5acd — 25/09 — feat: adiciona contratos abstratos TripulanteRepository e EscalaRepository
+- d3ccfcd — 25/09 — test: implementa FakeTripulanteRepository e FakeEscalaRepository com testes
+- 73a6c7f — 26/09 — feat: adiciona mapeamento ORM para tabelas de tripulantes e escalas
+- 2ee494a — 27/09 — test: adiciona testes de integracao para repositorios de tripulacao
+
+### 1. O que eu fiz neste checkpoint
+
+Neste checkpoint criei os contratos abstratos dos repositórios para os agregados `Tripulante` e `Escala`, uma implementação Fake em memória para testes rápidos da camada de serviço, o mapeamento relacional via SQLAlchemy ORM e a implementação real persistindo em SQLite com testes de integração.
+
+### 2. Decisão: Repositórios Abstratos (DIP - Dependency Inversion Principle)
+
+Defini as interfaces abstratas `TripulanteRepository` e `EscalaRepository` no domínio (`repositories.py`) usando `ABC`. Isso desacopla totalmente a camada de negócio de qualquer framework ou banco de dados, permitindo que a camada de aplicação use tanto implementações reais quanto fakes sem saber a diferença.
+
+### 3. Decisão: Fake Repositories para testes unitários isolados
+
+Implementei `FakeTripulanteRepository` e `FakeEscalaRepository` utilizando dicionários em memória no arquivo de testes. Isso viabiliza testes de unidade instantâneos para a camada de serviço, sem o overhead de inicializar banco de dados SQLite a cada execução de teste.
+
+### 4. Decisão: Modelagem relacional da Escala e Tripulantes
+
+Para persistir a `Escala` e os tripulantes a ela associados, criei as tabelas `escalas` e `escala_tripulantes` ligadas por chave estrangeira e `relationship` com `cascade="all, delete-orphan"`.
+Dessa forma, a integridade da escala é mantida pelo SQLAlchemy: se a escala for atualizada ou removida, a relação de tripulantes daquele voo é sincronizada de forma limpa.
+
+### 5. Decisão: Atualização inteligente no método salvar()
+
+Seguindo a mesma decisão arquitetural adotada pelo Verdan no agregado Voo, fiz com que o método `salvar()` do `SqlAlchemyTripulanteRepository` e do `SqlAlchemyEscalaRepository` consulte primeiro se o registro já existe no banco antes de persistir. Caso já exista, atualiza os campos; caso contrário, realiza o `insert`. Isso evita erros de integridade e garante que alterações no acúmulo de horas e na lista de tripulantes sejam salvas com sucesso.
+
+### 6. Uso de IA
+
+Utilizei IA para tirar dúvidas conceituais sobre cascade e relationship no SQLAlchemy ORM ao modelar a tabela intermediária de tripulantes da escala e para revisar mensagens de erro de importação. Todo o código commitado foi escrito por mim.
