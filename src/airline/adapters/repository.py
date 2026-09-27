@@ -6,6 +6,22 @@ from airline.service_layer.services import (
 )
 from airline.adapters.orm import ReservaModel, PassageiroModel, VooModel
 
+from airline.domain.model import (
+    Reserva,
+    Passageiro,
+    Aeronave,
+    StatusOrdemManutencao
+)
+
+from airline.domain.repositories import AeronaveRepository
+
+from airline.adapters.orm import (
+    ReservaModel,
+    PassageiroModel,
+    AeronaveModel,
+    OrdemManutencaoModel
+)
+
 class SqlAlchemyReservaRepository(ReservaRepository):
 
     def __init__(self, session):
@@ -48,6 +64,7 @@ class SqlAlchemyPassageiroRepository(PassageiroRepository):
         ...
 
 
+
 class SqlAlchemyVooRepository(VooRepository):
     
     def __init__(self, session):
@@ -81,3 +98,58 @@ class SqlAlchemyVooRepository(VooRepository):
         voo_reconstruido.status = StatusVoo(voo_model.status) 
         
         return voo_reconstruido
+
+
+#--Aeronave
+
+class SqlAlchemyAeronaveRepository(AeronaveRepository):
+
+    def __init__(self, session):
+        self.session = session
+
+    def salvar(self, aeronave: Aeronave) -> None:
+        aeronave_model = AeronaveModel(
+            prefixo=aeronave.prefixo,
+            modelo=aeronave.modelo,
+            capacidade=aeronave.capacidade,
+            validade_vistoria=aeronave.validade_vistoria
+        )
+
+        for ordem in aeronave.ordens_manutencao:
+            ordem_model = OrdemManutencaoModel(
+                descricao=ordem.descricao,
+                status=ordem.status
+            )
+
+            aeronave_model.ordens_manutencao.append(ordem_model)
+
+        self.session.add(aeronave_model)
+        self.session.commit()
+
+    def buscar(self, prefixo):
+        aeronave_model = (
+            self.session.query(AeronaveModel)
+            .filter_by(prefixo=prefixo)
+            .first()
+        )
+
+        if aeronave_model is None:
+            return None
+
+        aeronave = Aeronave(
+            prefixo=aeronave_model.prefixo,
+            modelo=aeronave_model.modelo,
+            capacidade=aeronave_model.capacidade,
+            validade_vistoria=aeronave_model.validade_vistoria
+        )
+
+        for ordem_model in aeronave_model.ordens_manutencao:
+            ordem = aeronave.abrir_ordem_manutencao(
+                ordem_model.descricao
+            )
+
+            if ordem_model.status == StatusOrdemManutencao.CONCLUIDA:
+                aeronave.concluir_ordem_manutencao(ordem)
+
+        return aeronave
+
