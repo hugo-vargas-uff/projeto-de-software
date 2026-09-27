@@ -1,6 +1,5 @@
-from airline.domain.model import Aeronave
 from datetime import date
-from airline.domain.model import OrdemManutencao, StatusOrdemManutencao
+from airline.domain.model import OrdemManutencao, StatusOrdemManutencao, Aeronave
 
 def test_deve_criar_aeronave():
     aeronave = Aeronave(
@@ -151,3 +150,8 @@ def test_aeronave_volta_a_ficar_disponivel_apos_concluir_ordem():
     aeronave.concluir_ordem_manutencao(ordem)
 
     assert aeronave.esta_disponivel(hoje) is True
+
+
+
+
+
