@@ -71,15 +71,17 @@ class SqlAlchemyVooRepository(VooRepository):
         self.session = session
 
     def salvar(self, voo: Voo) -> None:
-        voo_model = VooModel(
-            numero_voo=voo.numero_voo,
-            origem=voo.trecho.origem,
-            destino=voo.trecho.destino,
-            aeronave_id=voo.aeronave_id,
-            assentos_disponiveis=voo.assentos_disponiveis,
-            status=voo.status.value #enum string
-        )
-        self.session.add(voo_model)
+        voo_model = self.session.query(VooModel).filter_by(numero_voo=voo.numero_voo).first()
+
+        if voo_model is None:
+            voo_model = VooModel(numero_voo=voo.numero_voo)
+            self.session.add(voo_model)
+
+        voo_model.origem = voo.trecho.origem
+        voo_model.destino = voo.trecho.destino
+        voo_model.aeronave_id = voo.aeronave_id
+        voo_model.assentos_disponiveis = voo.assentos_disponiveis
+        voo_model.status = voo.status.value #enum vira string
 
 
     def buscar(self, numero_voo: str):
