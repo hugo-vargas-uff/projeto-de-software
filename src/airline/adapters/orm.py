@@ -2,6 +2,7 @@ from sqlalchemy import Column, String, Enum, Integer, Date, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
 from airline.domain.model import StatusReserva, StatusOrdemManutencao
 
+
 Base = declarative_base()
 
 class ReservaModel(Base):
