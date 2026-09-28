@@ -14,6 +14,13 @@ class ReservaService:
 
         return reserva
 
+    def buscar(self, voo_id, passageiro_id):
+        return self.reserva_repository.buscar(voo_id, passageiro_id)
+
+    def contar_reservas_por_voo(self, voo_id):
+        return self.reserva_repository.contar_reservas_por_voo(voo_id)
+
+
 
 class PassageiroService:
 
@@ -27,3 +34,6 @@ class PassageiroService:
         self.passageiro_repository.salvar(passageiro)
 
         return passageiro
+
+    def buscar(self, cpf):
+        return self.passageiro_repository.buscar(cpf)
