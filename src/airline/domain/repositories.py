@@ -9,7 +9,7 @@ class ReservaRepository(ABC):
         pass
 
     @abstractmethod
-    def buscar(self, reserva_id):
+    def buscar(self, voo_id, passageiro_id):
         pass
 
     @abstractmethod
@@ -24,7 +24,7 @@ class PassageiroRepository(ABC):
         pass
 
     @abstractmethod
-    def buscar(self, passageiro_id):
+    def buscar(self, cpf):
         pass
 
 

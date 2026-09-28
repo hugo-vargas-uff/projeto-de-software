@@ -1,15 +1,31 @@
 import uuid
+from enum import Enum
+
+class StatusReserva(Enum):
+    CONFIRMADA = "CONFIRMADA"
+    CANCELADA = "CANCELADA"
+
 
 class Reserva:
 
     def __init__(self, voo_id, passageiro_id):
-        self.id = uuid.uuid4()
         self.voo_id = voo_id
         self.passageiro_id = passageiro_id
         self.status = StatusReserva.CONFIRMADA
 
     def cancelar(self):
         self.status = StatusReserva.CANCELADA
+
+    @classmethod
+    def restaurar(cls, voo_id, passageiro_id, status):
+        reserva = cls.__new__(cls)
+
+        reserva.voo_id = voo_id
+        reserva.passageiro_id = passageiro_id
+        reserva.status = status
+
+        return reserva
+
 
 class Passageiro:
 
@@ -18,12 +34,15 @@ class Passageiro:
         self.nome = nome
         self.cpf = cpf
 
-from enum import Enum
+    @classmethod
+    def restaurar(cls, id, nome, cpf):
+        passageiro = cls.__new__(cls)
 
-class StatusReserva(Enum):
-        CONFIRMADA = "CONFIRMADA"
-        CANCELADA = "CANCELADA"
+        passageiro.id = id
+        passageiro.nome = nome
+        passageiro.cpf = cpf
 
+        return passageiro
 
 # ----------------------------------
 # agregado voo 
