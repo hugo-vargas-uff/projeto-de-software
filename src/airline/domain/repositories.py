@@ -24,7 +24,11 @@ class PassageiroRepository(ABC):
         pass
 
     @abstractmethod
-    def buscar(self, cpf):
+    def buscar_por_id(self, passageiro_id):
+        pass
+
+    @abstractmethod
+    def buscar_por_cpf(self, cpf):
         pass
 
 
