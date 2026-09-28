@@ -1,26 +1,9 @@
-from airline.domain.model import Reserva, Passageiro, Voo, Trecho, StatusVoo
+from airline.domain.model import Reserva, Passageiro, Voo, Aeronave, Trecho, StatusVoo, StatusOrdemManutencao, StatusReserva
 from airline.domain.repositories import VooRepository
-from airline.service_layer.services import (
-    ReservaRepository,
-    PassageiroRepository
-)
-from airline.adapters.orm import ReservaModel, PassageiroModel, VooModel
 
-from airline.domain.model import (
-    Reserva,
-    Passageiro,
-    Aeronave,
-    StatusOrdemManutencao
-)
+from airline.adapters.orm import ReservaModel, PassageiroModel, VooModel, AeronaveModel, OrdemManutencaoModel
 
-from airline.domain.repositories import AeronaveRepository
-
-from airline.adapters.orm import (
-    ReservaModel,
-    PassageiroModel,
-    AeronaveModel,
-    OrdemManutencaoModel
-)
+from airline.domain.repositories import AeronaveRepository, ReservaRepository, PassageiroRepository
 
 class SqlAlchemyReservaRepository(ReservaRepository):
 
@@ -29,20 +12,33 @@ class SqlAlchemyReservaRepository(ReservaRepository):
 
     def salvar(self, reserva: Reserva) -> None:
         reserva_model = ReservaModel(
-                id = str(reserva.id),
-                voo_id = str(reserva.voo_id),
-                passageiro_id = str(reserva.passageiro_id),
-                status = reserva.status
+            voo_id=str(reserva.voo_id),
+            passageiro_id=str(reserva.passageiro_id),
+            status=reserva.status
         )
 
         self.session.add(reserva_model)
         self.session.commit()
 
-    def buscar(self, reserva_id):
-        ...
+    def buscar(self, voo_id, passageiro_id):
+        reserva_model = self.session.query(ReservaModel).filter_by(
+            voo_id=str(voo_id),passageiro_id=str(passageiro_id)
+        ).first()
+
+        if reserva_model is None:
+            return None
+
+        return Reserva.restaurar(
+            voo_id=reserva_model.voo_id,
+            passageiro_id=reserva_model.passageiro_id,
+            status=reserva_model.status
+        )
 
     def contar_reservas_por_voo(self, voo_id):
-        ...
+        return self.session.query(ReservaModel).filter_by(
+            voo_id=str(voo_id),status=StatusReserva.CONFIRMADA
+        ).count()
+
 
 
 class SqlAlchemyPassageiroRepository(PassageiroRepository):
