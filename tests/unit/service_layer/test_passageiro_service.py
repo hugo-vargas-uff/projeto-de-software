@@ -10,8 +10,8 @@ class FakePassageiroRepository(PassageiroRepository):
     def salvar(self, passageiro: Passageiro) -> None:
         self.passageiros[passageiro.id] = passageiro
 
-    def buscar(self, passageiro_id):
-        return self.passageiros.get(passageiro_id)
+    def buscar(self, cpf):
+        return self.passageiros.get(cpf)
 
 def test_deve_criar_passageiro():
 
