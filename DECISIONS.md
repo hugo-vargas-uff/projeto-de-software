@@ -286,3 +286,39 @@ Seguindo a mesma decisão arquitetural adotada pelo Verdan no agregado Voo, fiz 
 ### 6. Uso de IA
 
 Utilizei IA para tirar dúvidas conceituais sobre cascade e relationship no SQLAlchemy ORM ao modelar a tabela intermediária de tripulantes da escala e para revisar mensagens de erro de importação. Todo o código commitado foi escrito por mim.
+
+## Entrega da Fase 1 — Camada de Serviço, API Flask e Testes E2E
+
+Arquivos: `src/airline/service_layer/services.py`, `tests/unit/service_layer/test_tripulacao_service.py`, `src/airline/entrypoints/flask_app.py`, `tests/e2e/test_api.py`, `tests/conftest.py`, `requirements.txt`, `DECISIONS.md`
+
+Commits:
+- 6c53dd6 — 28/09 — test: adiciona testes de servico para cadastro e escalonamento de tripulantes
+- afb9fef — 28/09 — feat: implementa servicos de tripulacao e escala na camada de servico
+- 8f6c569 — 28/09 — feat: adiciona entrypoints Flask com rotas para tripulacao e escala
+- 5edf237 — 28/09 — test: cria testes e2e para a API Flask
+
+### 1. O que eu fiz neste fechamento de Fase
+
+Nesta etapa final da Fase 1, conectei todas as pontas da aplicação: implementei a Camada de Serviço (`service_layer`), a API HTTP utilizando Flask (`entrypoints`) e os testes ponta a ponta (`tests/e2e/`) cobrindo todas as rotas e fluxos de tripulação e escala.
+
+### 2. Decisão: Orquestração e transações na Service Layer
+
+Criei `TripulanteService` e `EscalaService` na camada de serviço. A operação de escalonar um tripulante (`escalar_tripulante`) é um caso de uso que orquestra a lógica entre os agregados:
+1. Localiza o tripulante pelo ID via repositório;
+2. Verifica e atualiza o acúmulo de horas de voo no domínio;
+3. Recupera ou instancia a escala do voo e aloca o tripulante;
+4. Persiste as duas entidades garantindo a consistência das operações.
+A camada de serviço não contém regras de negócio de domínio (como cálculo de horas ou validação de duplicidade), ela apenas orquestra as chamadas aos métodos de domínio e repositórios.
+
+### 3. Decisão: API Flask enxuta e orientada a casos de uso
+
+Na camada de entrada (`entrypoints/flask_app.py`), implementei rotas RESTful para cadastro de tripulantes (`POST /tripulantes`), busca (`GET /tripulantes/<id>`) e alocação de escalas (`POST /escalas`, `GET /escalas/<voo_id>`).
+A API não contém lógica de negócio: ela apenas extrai o JSON da requisição, chama a camada de serviço correspondente e converte o retorno para JSON, mapeando exceções de domínio (`ErroRegraTripulacao`) para status HTTP `400 Bad Request` e buscas vazias para `404 Not Found`.
+
+### 4. Decisão: Testes E2E com client nativo do Flask
+
+Nos testes ponta a ponta (`tests/e2e/test_api.py`), utilizei a fixture `client` do Flask com `app.test_client()`, testando os fluxos reais de requisições HTTP, envio de payloads JSON e validação dos códigos de status HTTP e das respostas recebidas.
+
+### 5. Uso de IA
+
+Utilizei IA para revisar as boas práticas de estrutura de fixtures com pytest para o test_client do Flask e para consultar o padrão do Apêndice B do livro no desacoplamento entre entrypoints e service layer. Todo o código do projeto foi implementado e testado por mim.
