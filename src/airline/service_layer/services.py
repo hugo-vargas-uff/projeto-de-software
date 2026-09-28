@@ -1,5 +1,5 @@
-from airline.domain.model import Reserva, Passageiro
-from airline.domain.repositories import ReservaRepository, PassageiroRepository
+from airline.domain.model import Reserva, Passageiro, Tripulante, CargoTripulante, Escala, ErroRegraTripulacao
+from airline.domain.repositories import ReservaRepository, PassageiroRepository, TripulanteRepository, EscalaRepository
 from airline.domain.exception import CpfJaCadastradoException, PassageiroNaoEncontrado
 
 class ReservaService:
@@ -45,3 +45,50 @@ class PassageiroService:
 
     def buscar(self, cpf):
         return self.passageiro_repository.buscar_por_cpf(cpf)
+
+    
+
+# --- Serviços de Tripulação e Escala
+
+class TripulanteService:
+
+    def __init__(self, tripulante_repository: TripulanteRepository):
+        self.tripulante_repository = tripulante_repository
+
+    def cadastrar_tripulante(self, nome: str, cargo: CargoTripulante, teto_horas: float = 85.0) -> Tripulante:
+        tripulante = Tripulante(nome=nome, cargo=cargo, teto_horas=teto_horas)
+        self.tripulante_repository.salvar(tripulante)
+        return tripulante
+
+    def buscar_por_id(self, tripulante_id):
+        return self.tripulante_repository.buscar_por_id(tripulante_id)
+
+
+class EscalaService:
+
+    def __init__(self, escala_repo: EscalaRepository, tripulante_repo: TripulanteRepository):
+        self.escala_repo = escala_repo
+        self.tripulante_repo = tripulante_repo
+
+    def escalar_tripulante(self, voo_id: str, tripulante_id, duracao_horas_voo: float) -> Escala:
+        tripulante = self.tripulante_repo.buscar_por_id(tripulante_id)
+        if tripulante is None:
+            raise ErroRegraTripulacao("Tripulante nao encontrado")
+
+        # Verifica se já existe escala para este voo ou cria nova
+        escala = self.escala_repo.buscar_por_voo(voo_id)
+        if escala is None:
+            escala = Escala(voo_id=voo_id)
+
+        # Regras de negócio
+        tripulante.registrar_horas_de_voo(duracao_horas_voo)
+        escala.adicionar_tripulante(tripulante_id)
+
+        # Persistência
+        self.tripulante_repo.salvar(tripulante)
+        self.escala_repo.salvar(escala)
+
+        return escala
+
+    def consultar_escala(self, voo_id: str):
+        return self.escala_repo.buscar_por_voo(voo_id)
