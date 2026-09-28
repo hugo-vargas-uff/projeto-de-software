@@ -68,3 +68,72 @@ def test_fake_buscar_escala_inexistente_retorna_none():
     repo = FakeEscalaRepository()
 
     assert repo.buscar_por_voo("VOO-INEXISTENTE") is None
+
+
+
+# --- Testes da Camada de Serviço (Casos de Uso)
+
+from airline.service_layer.services import TripulanteService, EscalaService
+from airline.domain.model import ErroRegraTripulacao
+import pytest
+
+
+def test_servico_deve_cadastrar_tripulante():
+    repo = FakeTripulanteRepository()
+    servico = TripulanteService(repo)
+
+    tripulante = servico.cadastrar_tripulante(
+        nome="Roberto Mendes",
+        cargo=CargoTripulante.PILOTO,
+        teto_horas=85.0
+    )
+
+    assert tripulante.id is not None
+    assert repo.buscar_por_id(tripulante.id) == tripulante
+
+
+def test_servico_deve_escalar_tripulante_com_sucesso():
+    tripulante_repo = FakeTripulanteRepository()
+    escala_repo = FakeEscalaRepository()
+
+    tripulante = Tripulante(
+        nome="Lucas Andrade",
+        cargo=CargoTripulante.PILOTO,
+        teto_horas=85.0
+    )
+    tripulante_repo.salvar(tripulante)
+
+    servico = EscalaService(escala_repo=escala_repo, tripulante_repo=tripulante_repo)
+
+    escala = servico.escalar_tripulante(
+        voo_id="MV-2019",
+        tripulante_id=tripulante.id,
+        duracao_horas_voo=5.0
+    )
+
+    assert escala.total_tripulantes() == 1
+    assert tripulante.horas_de_voo == 5.0
+
+
+def test_servico_nao_deve_escalar_tripulante_se_estourar_teto_de_horas():
+    tripulante_repo = FakeTripulanteRepository()
+    escala_repo = FakeEscalaRepository()
+
+    tripulante = Tripulante(
+        nome="Lucas Andrade",
+        cargo=CargoTripulante.PILOTO,
+        teto_horas=85.0
+    )
+    tripulante.registrar_horas_de_voo(82.0)  # já tem 82h
+    tripulante_repo.salvar(tripulante)
+
+    servico = EscalaService(escala_repo=escala_repo, tripulante_repo=tripulante_repo)
+
+    # Voo de 5h estouraria o teto de 85h
+    with pytest.raises(ErroRegraTripulacao, match="Teto regulamentar de horas ultrapassado"):
+        servico.escalar_tripulante(
+            voo_id="MV-2019",
+            tripulante_id=tripulante.id,
+            duracao_horas_voo=5.0
+        )
+
