@@ -11,11 +11,7 @@ class SqlAlchemyReservaRepository(ReservaRepository):
         self.session = session
 
     def salvar(self, reserva: Reserva) -> None:
-        reserva_model = ReservaModel(
-            voo_id=str(reserva.voo_id),
-            passageiro_id=str(reserva.passageiro_id),
-            status=reserva.status
-        )
+        reserva_model = ReservaModel.from_domain(reserva)
 
         self.session.add(reserva_model)
         self.session.commit()
@@ -28,11 +24,7 @@ class SqlAlchemyReservaRepository(ReservaRepository):
         if reserva_model is None:
             return None
 
-        return Reserva.restaurar(
-            voo_id=reserva_model.voo_id,
-            passageiro_id=reserva_model.passageiro_id,
-            status=reserva_model.status
-        )
+        return reserva_model.to_domain()
 
     def contar_reservas_por_voo(self, voo_id):
         return self.session.query(ReservaModel).filter_by(
@@ -47,17 +39,32 @@ class SqlAlchemyPassageiroRepository(PassageiroRepository):
         self.session = session
 
     def salvar(self, passageiro: Passageiro) -> None:
-        passageiro_model = PassageiroModel(
-            id = str(passageiro.id),
-            nome = passageiro.nome,
-            cpf = passageiro.cpf
-        )
+        passageiro_model = PassageiroModel.from_domain(passageiro)
 
         self.session.add(passageiro_model)
         self.session.commit()
 
-    def buscar(self, passageiro_id):
-        ...
+    def buscar_por_id(self, passageiro_id):
+        passageiro_model = self.session.query(PassageiroModel).filter_by(
+            id=str(passageiro_id)
+        ).first()
+        
+        if passageiro_model is None:
+            return None
+
+        return passageiro_model.to_domain()
+
+    def buscar_por_cpf(self, cpf):
+        passageiro_model = (
+            self.session.query(PassageiroModel)
+            .filter_by(cpf=cpf)
+            .first()
+        )
+
+        if passageiro_model is None:
+            return None
+
+        return passageiro_model.to_domain()
 
 
 
