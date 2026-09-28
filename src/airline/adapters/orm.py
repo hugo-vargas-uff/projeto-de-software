@@ -2,15 +2,13 @@ from sqlalchemy import Column, String, Enum, Integer, Date, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
 from airline.domain.model import StatusReserva, StatusOrdemManutencao
 
-
 Base = declarative_base()
 
 class ReservaModel(Base):
     __tablename__ = "reservas"
 
-    id = Column(String, primary_key=True)
-    voo_id = Column(String, nullable=False)
-    passageiro_id = Column(String, nullable=False)
+    voo_id = Column(String, primary_key=True)
+    passageiro_id = Column(String, primary_key=True)
     status = Column(Enum(StatusReserva), nullable=False)
 
 
