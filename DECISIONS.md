@@ -1,31 +1,91 @@
-# Agregado Voo
+# Agregado Voo - Matheus Verdan
+## Checkpoint 1 - Domínio do Voo
 
-## Trecho como objeto de valor
+Arquivos: src/airline/domain/model.py, tests/unit/domain/test_voo.py, .github/workflows/ci.yml, DECISIONS.md
+
+Commits:
+- 40949ed - 18/09 - Adicionando DECISIONS.md
+- 7d27fcb - 18/09 - test: cria teste de criação de Voo com status agendado
+- 60601b4 - 18/09 - feat: implementa classe Voo com StatusVoo
+- 20fb31b - 18/09 - test: cria teste de criacao de Trecho
+- 3530400 - 19/09 - feat: implementa Trecho como objeto de valor
+- 5f7bf61 - 19/09 - docs: registra decisoes do agregado Voo
+- 42a4d6b - 20/09 - test: att voo com trecho e add teste de igualdade de rota
+- feef938 - 20/09 - feat: construtor de voo agora tem trecho
+- c5c5dc5 - 20/09 - test: add teste de cancelamento de voo
+- 86f2b21 - 20/09 - feat: add funcionalidade para cancelar voo
+- 8ca9a20 - 20/09 - test: add realizacao de voo
+- 42c2b09 - 20/09 - feat:add funcionalidade para realizar voo
+- 37a106d - 20/09 - test: add testes de regras de negocio para mudancas de status
+- 3911707 - 20/09 - feat: aplica validacoes de status no Voo
+- 06a4c1a - 20/09 - docs: novas decisoes sobre os status
+- ee4cca4 - 20/09 - configura testes automaticos no github
+
+### Trecho como objeto de valor
 2026-09-18
 
 Um trecho tem só origem e destino, então não vi necessidade de dar um ID a ele. GRU -> GIG sempre representa o mesmo trecho, e o que importa é o valor, não uma identidade própria. Por isso tratei Trecho como Objeto de Valor.
 
 Também não faz sentido alterar um trecho depois de criado (se a rota mudar, basta criar um novo), então usei frozen=True para deixar o objeto imutável.
 
-## StatusVoo como Enum
+### StatusVoo como Enum
 2026-09-18
 
 Usei Enum para os status do Voo (AGENDADO, CANCELADO, REALIZADO) para padronizar os valores e evitar erros de digitação.
 
-## Trocas de Status
+### Trocas de Status
 2026-09-20
 
 Em vez de deixar o status do voo ser alterado livremente de fora da classe, decidi criar métodos específicos (cancelar() e realizar()). Dessa forma, o próprio agregado consegue proteger suas regras de negócio antes da mudança ocorrer. Por exemplo, o método lança um ErroRegraVoo caso alguém tente cancelar um voo que já foi realizado.
 
-## Sem metodo para reagendar()
+### Sem metodo para reagendar()
 2026-09-20
 
 Inicialmente pensei em criar um método para voltar o status de CANCELADO para AGENDADO. Mas, olhando para a situação real, um voo cancelado envolve mudanças que vão além do próprio status. Se a companhia precisar daquela rota novamente, o correto é instanciar um Voo novo. Por isso, decidi que um voo cancelado (ou realizado) não pode mais mudar de status.
 
-## Invariante de lotação movida para o Voo
+## Checkpoint 2 - Repositório do Voo
+
+Arquivos: src/airline/domain/model.py, src/airline/domain/repositories.py, src/airline/adapters/orm.py, src/airline/adapters/repository.py, tests/unit/domain/test_voo.py, tests/integration/adapter/test_SqlAlchemyVooRepository.py, tests/unit/service_layer/test_voo_service.py
+
+Commits:
+- d8331d5 - 24/09 - test: adiciona aeronave_id e capacidade nos testes
+- 1b54eff - 24/09 - feat: add aeronave_id e capacidade de assentos em voo
+- 368e1b6 - 24/09 - test: add teste de alocacao de assentos
+- 025311c - 24/09 - feat: implementa metodo alocar_assento com invariante de lotacao em voo
+- 1feb052 - 25/09 - docs: add a decisao sobre a invariante de lotacao
+- 6c1ae4e - 26/09 - feat: add rep abstrato de voo
+- 4d18dde - 26/09 - feat: cria modelo de voo
+- 453e524 - 26/09 - test: add teste de integracao do repo de voo
+- d0cd57f - 26/09 - feat: implementa SqlAlchemyVooRepository
+- 4831301 - 26/09 - test: implementa repositorio fake de voo
+- 30e3fc2 - 27/09 - test: salvar voo existente deve atualizar o status
+- 33f4529 - 27/09 - fix: repositorio att voo existente em vez de inserir de novo
+- a61afe5 - 27/09 - refactor: trecho, aeronave e capacidade passam a ser obrigatorios
+
+### Invariante de lotação movida para o Voo
 2026-09-24
 Percebi que no modelo original, a regra de não exceder a capacidade do voo estava atribuída ao agregado Reserva. Isso não funcionaria na prática porque a Reserva não tem acesso ao número total de assentos nem sabe quantas outras reservas existem. Movi essa responsabilidade para o Voo, que agora recebe a capacidade da aeronave no momento da criação e controla a alocação de
 assentos internamente com o método alocar_assento().
+
+### Trecho sem tabela própria
+2026-09-25
+
+Como o Trecho não tem identidade, criar uma tabela para ele me obrigaria a inventar um ID que o domínio nunca usaria. Guardei origem e destino como duas colunas da tabela voos, e no buscar monto um Trecho novo com esses dois valores.
+
+### testes de integração sem usar o repositório para conferir ele mesmo
+2026-09-25
+
+Fiz os testes de integração usando comandos SQL puro para não usar o próprio repositório para testar ele mesmo. Se eu chamasse o buscar() pra validar o salvar() e houvesse um erro de mapeamento de colunas nos dois, um erro esconderia o outro e o teste daria um falso positivo.
+
+### Atualização de voos no método salvar
+2026-09-27
+
+Mudei o comportamento do salvar() para ele procurar o voo no banco antes de fazer qualquer coisa. Se o voo já existir ele faz um update e se não existir ele cria um novo. Tive que fazer isso porque as informações do voo mudam bastante, principalmente a quantidade de assentos que cai toda vez que uma reserva é feita. Se o repositório só soubesse fazer insert, o banco nunca ia receber a atualização dos assentos e ia dar erro de chave primária duplicada na hora de salvar a mudança.
+
+### Voo não pode ser criado incompleto
+2026-09-27
+
+Agora não dá para criar um voo sem rota, sem aeronave ou sem capacidade. A capacidade zero como padrão também foi alterada, porque criava um voo que já nascia lotado.
 
 
 # Agregado Aeronave — Matheus Andrade
