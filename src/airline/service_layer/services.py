@@ -14,30 +14,51 @@ from airline.domain.repositories import (
     TripulanteRepository,
     EscalaRepository
 )
-from airline.domain.exception import CpfJaCadastradoException, PassageiroNaoEncontrado
+from airline.domain.exception import CpfJaCadastradoException, PassageiroNaoEncontrado, ReservaNaoEncontrada
 from airline.domain.model import Voo, Trecho
 from airline.domain.repositories import VooRepository
 from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel
 
 class ReservaService:
 
-    def __init__(self, reserva_repository: ReservaRepository, passageiro_repository: PassageiroRepository):
+    def __init__(
+        self,
+        reserva_repository: ReservaRepository,
+        passageiro_repository: PassageiroRepository,
+        voo_repository: VooRepository
+    ):
         self.reserva_repository = reserva_repository
         self.passageiro_repository = passageiro_repository
+        self.voo_repository = voo_repository
 
     def criar_reserva(self, voo_id, passageiro_id):
+
         if self.passageiro_repository.buscar_por_id(passageiro_id) is None:
             raise PassageiroNaoEncontrado("Passageiro nao encontrado")
 
-        reserva = Reserva(voo_id=voo_id, passageiro_id=passageiro_id)
+        if self.voo_repository.buscar(voo_id) is None:
+            raise VooNaoEncontrado("Voo nao encontrado")
+
+        reserva = Reserva(voo_id=voo_id,passageiro_id=passageiro_id)
+
         self.reserva_repository.salvar(reserva)
+
         return reserva
 
     def buscar(self, voo_id, passageiro_id):
+
         if self.passageiro_repository.buscar_por_id(passageiro_id) is None:
             raise PassageiroNaoEncontrado("Passageiro nao encontrado")
 
-        return self.reserva_repository.buscar(voo_id, passageiro_id)
+        if self.voo_repository.buscar(voo_id) is None:
+            raise VooNaoEncontrado("Voo nao encontrado")
+
+        reserva = self.reserva_repository.buscar(voo_id, passageiro_id)
+
+        if reserva is None:
+            raise ReservaNaoEncontrada("Reserva nao encontrada")
+
+        return reserva
 
     def contar_reservas_por_voo(self, voo_id):
         return self.reserva_repository.contar_reservas_por_voo(voo_id)
@@ -57,7 +78,12 @@ class PassageiroService:
         return passageiro
 
     def buscar(self, cpf):
-        return self.passageiro_repository.buscar_por_cpf(cpf)
+        passageiro = self.passageiro_repository.buscar_por_cpf(cpf)
+
+        if passageiro is None:
+            raise PassageiroNaoEncontrado("Passageiro nao encontrado")
+
+        return passageiro
 
 
 # --- Serviços de Tripulação e Escala
