@@ -1,10 +1,15 @@
+import uuid
 import pytest
-from airline.entrypoints.flask_app import app
+from airline.entrypoints.flask_app import app, engine
+from airline.adapters.orm import Base
 
 
 @pytest.fixture
 def client():
     app.config["TESTING"] = True
+    # Limpa e recria o banco para cada teste rodar isolado e limpo
+    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
     with app.test_client() as client:
         yield client
 
@@ -24,7 +29,7 @@ def test_api_deve_cadastrar_tripulante(client):
 
 
 def test_api_deve_escalar_tripulante_para_voo(client):
-    # Cadastra tripulante primeiro
+    # Cadastra o tripulante primeiro
     resp_t = client.post("/tripulantes", json={
         "nome": "Beatriz Lima",
         "cargo": "COPILOTO",
@@ -32,7 +37,7 @@ def test_api_deve_escalar_tripulante_para_voo(client):
     })
     tripulante_id = resp_t.get_json()["id"]
 
-    # Faz o escalonamento
+    # Faz o escalonamento para o voo
     response = client.post("/escalas", json={
         "voo_id": "MV-3000",
         "tripulante_id": tripulante_id,
@@ -53,7 +58,7 @@ def test_api_erro_ao_escalar_com_horas_acima_do_teto(client):
     })
     tripulante_id = resp_t.get_json()["id"]
 
-    # Voo de 12 horas estourando teto de 10
+    # Voo de 12 horas estourando o teto de 10h
     response = client.post("/escalas", json={
         "voo_id": "MV-4000",
         "tripulante_id": tripulante_id,
