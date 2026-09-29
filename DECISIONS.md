@@ -265,6 +265,8 @@ Também criei os endpoints para cadastrar uma aeronave e consultar sua disponibi
 - 7676aad — 28/09 — test: adiciona testes do AeronaveService com repositorio fake
 - 1051564 — 29/09 — feat: adiciona endpoints de cadastro e disponibilidade da Aeronave
 - dd0ed43 — 29/09 — test: add testes e2e da API de Aeronave
+- a286066 — 29/09 — feat: trata cadastro de aeronave duplicada com erro 400
+- 7afbff9 — 29/09 — test: add teste de prefixo repetido no AeronaveService
 
 
 ### 3. Decisão: regras continuam no domínio
@@ -285,17 +287,17 @@ Assim a classe Aeronave continua trabalhando com objetos date e não precisa con
 
 ### 5. Testes da API
 
-Criei testes e2e para verificar o cadastro da aeronave, a consulta de uma aeronave disponível e a resposta 404 quando o prefixo não existe.
+Criei quatro testes e2e para verificar o cadastro da aeronave, a consulta de uma aeronave disponível e a resposta 404 quando quando é feito um novo cadastro com um prefixo já existente e a resposta 400 quando é feito um novo cadastro com um prefixo já existente.
 
 Esses testes verificam o fluxo completo passando pela API, serviço, repositório e banco.
 
-### 6. Limitações técnicas
+### 6. Tratamento de erros e limitações
 
-Atualmente, cadastrar uma aeronave com um prefixo que já existe faz a API devolver HTTP 500 por causa do conflito de chave primária. O correto seria tratar esse caso e devolver 400 ou 409 com uma mensagem adequada.
+O cadastro de uma aeronave com prefixo já existente passou a ser tratado no AeronaveService. O serviço verifica se o prefixo já está cadastrado e, nesse caso, lança a exceção AeronaveJaExiste.
 
-As rotas para abrir e concluir ordens de manutenção também ainda não foram implementadas. Esses casos de uso já existem no AeronaveService e possuem testes, mas ainda não foram expostos na API.
+A rota POST /aeronaves captura essa exceção e devolve HTTP 400, evitando que o conflito de chave primária chegue ao banco e gere HTTP 500.
 
-Isso acontece porque o método salvar do repositório ainda sempre tenta inserir a aeronave novamente e porque a OrdemManutencao ainda não possui um identificador próprio para ser usado na URL.
+A limitação que continua é que as rotas para abrir e concluir ordens de manutenção ainda não foram implementadas. Os casos de uso existem no AeronaveService, mas ainda não estão disponíveis pela API.
 
 ### 7. Uso de IA
 
