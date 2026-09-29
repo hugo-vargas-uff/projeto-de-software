@@ -3,6 +3,10 @@ from airline.domain.model import Aeronave, StatusOrdemManutencao
 from airline.domain.repositories import AeronaveRepository
 from airline.service_layer.services import AeronaveService
 
+import pytest
+
+from airline.domain.exception import AeronaveJaExiste
+
 
 
 class FakeAeronaveRepository(AeronaveRepository):
@@ -126,3 +130,22 @@ def test_consultar_disponibilidade():
     )
 
     assert disponivel is True
+
+def test_nao_deve_cadastrar_aeronave_com_prefixo_repetido():
+    repo = FakeAeronaveRepository()
+    service = AeronaveService(repo)
+
+    service.cadastrar_aeronave(
+        prefixo="PT-MVA",
+        modelo="Boeing 737",
+        capacidade=180,
+        validade_vistoria=date(2026, 12, 31)
+    )
+
+    with pytest.raises(AeronaveJaExiste):
+        service.cadastrar_aeronave(
+            prefixo="PT-MVA",
+            modelo="Airbus A320",
+            capacidade=186,
+            validade_vistoria=date(2027, 12, 31)
+        )
