@@ -11,6 +11,7 @@ from airline.domain.model import CargoTripulante, ErroRegraTripulacao
 from datetime import date
 from airline.adapters.repository import SqlAlchemyVooRepository, SqlAlchemyAeronaveRepository
 from airline.service_layer.services import VooService
+from airline.domain.model import ErroRegraVoo
 from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel
 
 app = Flask(__name__)
@@ -150,6 +151,35 @@ def consultar_voo(numero_voo):
         "assentos_disponiveis": voo.assentos_disponiveis,
         "status": voo.status.value,
     }, 200
+
+@app.route("/voos/<numero_voo>/cancelar", methods=["POST"])
+def cancelar_voo(numero_voo):
+    session = SessionFactory()
+    try:
+        status = montar_voo_service(session).cancelar_voo(numero_voo)
+    except VooNaoEncontrado as erro:
+        return {"mensagem": str(erro)}, 404
+    except ErroRegraVoo as erro:  #regra do dominio, por exemplo cancelar um voo ja realizado
+        return {"mensagem": str(erro)}, 400
+    finally:
+        session.close()
+
+    return {"numero_voo": numero_voo, "status": status}, 200
+
+
+@app.route("/voos/<numero_voo>/realizar", methods=["POST"])
+def realizar_voo(numero_voo):
+    session = SessionFactory()
+    try:
+        status = montar_voo_service(session).realizar_voo(numero_voo)
+    except VooNaoEncontrado as erro:
+        return {"mensagem": str(erro)}, 404
+    except ErroRegraVoo as erro:
+        return {"mensagem": str(erro)}, 400
+    finally:
+        session.close()
+
+    return {"numero_voo": numero_voo, "status": status}, 200
 
 
 if __name__ == "__main__":
