@@ -246,6 +246,63 @@ Usei IA para tirar dúvidas sobre relationship e cascade no SQLAlchemy, revisar 
 
 
 
+## Checkpoint 3 — Serviço e API da Aeronave
+
+### 1. O que eu fiz neste checkpoint
+
+Neste checkpoint criei o AeronaveService, responsável por cadastrar aeronaves, abrir e concluir ordens de manutenção e consultar disponibilidade.
+
+Também criei os endpoints para cadastrar uma aeronave e consultar sua disponibilidade, além dos testes e2e da API.
+
+### 2. Arquivos e commits
+
+- src/airline/service_layer/services.py
+- src/airline/entrypoints/flask_app.py
+- tests/unit/service_layer/test_aeronave_service.py
+- tests/e2e/test_api_aeronave.py
+
+- e66f35e — 28/09 — feat: adiciona AeronaveService com quatro casos de uso
+- 7676aad — 28/09 — test: adiciona testes do AeronaveService com repositorio fake
+- 1051564 — 29/09 — feat: adiciona endpoints de cadastro e disponibilidade da Aeronave
+- dd0ed43 — 29/09 — test: add testes e2e da API de Aeronave
+
+
+### 3. Decisão: regras continuam no domínio
+
+2026-09-28
+
+Decidi deixar o AeronaveService apenas responsável por coordenar os casos de uso. As regras de manutenção e disponibilidade continuam dentro da própria Aeronave.
+
+Assim o serviço busca a aeronave no repositório, chama os métodos do domínio e salva o resultado.
+
+### 4. Decisão: conversão da data na API
+
+2026-09-29
+
+A validade da vistoria chega pela API como texto no formato de data. Decidi fazer a conversão no flask_app.py usando date.fromisoformat antes de enviar o valor para o domínio.
+
+Assim a classe Aeronave continua trabalhando com objetos date e não precisa conhecer o formato usado no JSON.
+
+### 5. Testes da API
+
+Criei testes e2e para verificar o cadastro da aeronave, a consulta de uma aeronave disponível e a resposta 404 quando o prefixo não existe.
+
+Esses testes verificam o fluxo completo passando pela API, serviço, repositório e banco.
+
+### 6. Limitações técnicas
+
+Atualmente, cadastrar uma aeronave com um prefixo que já existe faz a API devolver HTTP 500 por causa do conflito de chave primária. O correto seria tratar esse caso e devolver 400 ou 409 com uma mensagem adequada.
+
+As rotas para abrir e concluir ordens de manutenção também ainda não foram implementadas. Esses casos de uso já existem no AeronaveService e possuem testes, mas ainda não foram expostos na API.
+
+Isso acontece porque o método salvar do repositório ainda sempre tenta inserir a aeronave novamente e porque a OrdemManutencao ainda não possui um identificador próprio para ser usado na URL.
+
+### 7. Uso de IA
+
+Usei IA para revisar a estrutura do AeronaveService, tirar dúvidas sobre a organização das rotas Flask, testes unitários e e2e. O código utilizado no projeto foi escrito por mim.
+
+
+
 
 
 # Agregado Reserva
