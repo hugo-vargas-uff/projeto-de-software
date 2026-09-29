@@ -3,3 +3,6 @@ class CpfJaCadastradoException(Exception):
 
 class PassageiroNaoEncontrado(Exception):
     pass
+
+class DespachoNaoEncontrado(Exception):
+    pass

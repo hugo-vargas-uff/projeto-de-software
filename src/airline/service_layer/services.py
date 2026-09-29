@@ -149,3 +149,40 @@ class AeronaveService:
         if aeronave is None:
             return None
         return aeronave.esta_disponivel(hoje)
+
+
+# --- Serviço de Despacho
+
+from airline.domain.model import Despacho, Volume, ErroRegraDespacho
+from airline.domain.repositories import DespachoRepository
+from airline.domain.exception import DespachoNaoEncontrado
+
+
+class DespachoService:
+
+    def __init__(self, despacho_repository: DespachoRepository):
+        self.despacho_repository = despacho_repository
+
+    def abrir_despacho(self, voo_id, carga_maxima):
+        if self.despacho_repository.buscar_por_voo(voo_id) is not None:
+            raise ErroRegraDespacho("Ja existe um despacho aberto para este voo")
+
+        despacho = Despacho(voo_id=voo_id, carga_maxima=carga_maxima)
+        self.despacho_repository.salvar(despacho)
+        return despacho
+
+    def adicionar_volume(self, despacho_id, peso):
+        despacho = self.consultar_despacho(despacho_id)
+        despacho.adicionar_volume(Volume(peso=peso))
+        self.despacho_repository.salvar(despacho)
+        return despacho
+
+    def consultar_despacho(self, despacho_id):
+        despacho = self.despacho_repository.buscar_por_id(despacho_id)
+        if despacho is None:
+            raise DespachoNaoEncontrado("Despacho nao encontrado")
+        return despacho
+
+    def consultar_peso_disponivel(self, despacho_id):
+        despacho = self.consultar_despacho(despacho_id)
+        return despacho.peso_disponivel()
