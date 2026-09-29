@@ -50,9 +50,21 @@ def test_cancelar_voo_pela_api(client, session_factory):
     assert resposta.status_code== 200
     assert resposta.get_json()["status"] == "CANCELADO"
 
-
 def test_cancelar_voo_inexistente_retorna_404(client):
     resposta = client.post("/voos/NAO-EXISTE/cancelar")
 
     assert resposta.status_code ==404
+    assert "mensagem" in resposta.get_json()
+
+def test_alocar_assento_ate_lotar_pela_api(client, session_factory):
+    cadastrar_aeronave(session_factory, capacidade=1)  #aviao de um lugar so
+    agendar(client, "MV-300")
+
+    resposta = client.post("/voos/MV-300/assentos")
+    assert resposta.status_code == 200
+    assert resposta.get_json()["assentos_disponiveis"] == 0
+
+    #esbarra na regra de lotacao
+    resposta = client.post("/voos/MV-300/assentos")
+    assert resposta.status_code == 400
     assert "mensagem" in resposta.get_json()
