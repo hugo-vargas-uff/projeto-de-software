@@ -169,3 +169,51 @@ class EscalaModel(Base):
             voo_id=self.voo_id,
             tripulantes_ids=tripulantes_ids
         )
+
+
+# --- Despacho
+
+from airline.domain.model import Despacho, Volume
+
+
+class VolumeDespachoModel(Base):
+    __tablename__ = "despacho_volumes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    despacho_id = Column(String, ForeignKey("despachos.id"), nullable=False)
+    peso = Column(Float, nullable=False)
+
+    despacho = relationship("DespachoModel", back_populates="volumes")
+
+
+class DespachoModel(Base):
+    __tablename__ = "despachos"
+
+    id = Column(String, primary_key=True)
+    voo_id = Column(String, nullable=False)
+    carga_maxima = Column(Float, nullable=False)
+
+    volumes = relationship(
+        "VolumeDespachoModel",
+        back_populates="despacho",
+        cascade="all, delete-orphan"
+    )
+
+    @classmethod
+    def from_domain(cls, despacho: Despacho):
+        model = cls(
+            id=str(despacho.id),
+            voo_id=despacho.voo_id,
+            carga_maxima=despacho.carga_maxima
+        )
+        for volume in despacho.volumes:
+            model.volumes.append(VolumeDespachoModel(peso=volume.peso))
+        return model
+
+    def to_domain(self):
+        return Despacho.restaurar(
+            id=uuid.UUID(str(self.id)),
+            voo_id=self.voo_id,
+            carga_maxima=self.carga_maxima,
+            volumes=[Volume(peso=v.peso) for v in self.volumes]
+        )

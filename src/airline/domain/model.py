@@ -159,7 +159,9 @@ class Volume:
     peso: float
 
 class Despacho:
-    def __init__(self, carga_maxima: float):
+    def __init__(self, voo_id: str, carga_maxima: float):
+        self.id = uuid.uuid4()
+        self.voo_id = voo_id
         self.carga_maxima = carga_maxima
         self.volumes = []
 
@@ -168,13 +170,33 @@ class Despacho:
 
         if novo_peso > self.carga_maxima:
             raise ErroRegraDespacho(
-                "Peso total dos volumes ultrapassa a carga maxima da aeronave"
+                "Peso total dos volumes ultrapassa a carga maxima do despacho"
             )
 
         self.volumes.append(volume)
 
     def peso_total(self):
         return sum(volume.peso for volume in self.volumes)
+
+    def peso_disponivel(self):
+        return self.carga_maxima - self.peso_total()
+
+    def __eq__(self, outro):
+        if not isinstance(outro, Despacho):
+            return False
+        return self.id == outro.id
+
+    def __hash__(self):
+        return hash(self.id)
+
+    @classmethod
+    def restaurar(cls, id, voo_id, carga_maxima, volumes):
+        despacho = cls.__new__(cls)
+        despacho.id = id
+        despacho.voo_id = voo_id
+        despacho.carga_maxima = carga_maxima
+        despacho.volumes = list(volumes)
+        return despacho
 
 
 
