@@ -90,7 +90,7 @@ Agora não dá para criar um voo sem rota, sem aeronave ou sem capacidade. A cap
 
 ## Entrega da Fase 1 - Voo
 
-Arquivos: src/airline/service_layer/services.py, src/airline/domain/exception.py, src/airline/entrypoints/flask_app.py, tests/unit/service_layer/test_voo_service.py, tests/e2e/test_api_voo.py, tests/conftest.py
+Arquivos: src/airline/domain/model.py, src/airline/service_layer/services.py, src/airline/domain/exception.py, src/airline/entrypoints/flask_app.py, tests/unit/domain/test_voo.py, tests/unit/service_layer/test_voo_service.py, tests/e2e/test_api_voo.py, tests/conftest.py
 
 Commits:
 - 57db2de - 29/09 - test: agendar voo copia a capacidade da aeronave
@@ -108,6 +108,10 @@ Commits:
 - 9766150 - 29/09 - test: cancelar voo pela api
 - 475920c - 29/09 - feat: rotas de cancelar e realizar voo
 - abc20da - 29/09 - test: fix
+- 78c3ae0 - 29/09 - feat: so voo agendado aloca assento
+- 3bbb673 - 29/09 - feat: alocar assento vooService
+- 9654350 - 29/09 - test: e2e aloca assento ate lotar
+- f5a33e8 - 29/09 - feat: rota de alocar assento
 
 ### Agendar um voo consulta a aeronave
 2026-09-29
@@ -137,12 +141,22 @@ Para quem usa a API saber se errou o identificador ou se esbarrou numa regra do 
 ### Fixtures de teste ponta a ponta no conftest
 2026-09-29
 
-Como o app do Flask que o Filipe fez já conecta num banco SQLite fixo, criei duas fixtures no conftest pra compartilhar com o grupo o client da API e a sessão do banco. A do client limpa as tabelas antes de cada teste, pra um teste não ver os dados do outro. A da sessão eu uso pra colocar uma aeronave direto no banco antes de testar o agendamento, já que ainda não temos rota pra cadastrar aeronave.
+Como o app do Flask que o Filipe fez já conecta num banco SQLite fixo, criei duas fixtures no conftest pra compartilhar com o grupo o client da API e a sessão do banco. A da sessão eu uso pra colocar uma aeronave direto no banco antes de testar o agendamento, porque quando escrevi o teste ainda não existia rota pra cadastrar aeronave. A do client limpa as tabelas antes de cada teste, pra um teste não ver os dados do outro.
 
 ### Limitação, cancelar um voo não cancela as reservas
 2026-09-29
 
 Hoje, cancelar um voo só muda o status dele, e as reservas daquele voo continuam confirmadas. Avisar a Reserva de dentro do Voo misturaria os dois agregados.
+
+### Alocar assento é um caso de uso só do Voo
+2026-09-29
+
+A regra de lotação existia no Voo, mas nenhum caso de uso chamava alocar_assento(). Criei esse caso de uso no serviço do Voo, com uma rota própria, mexendo só nesse agregado. Fazer a reserva alocar o assento no mesmo serviço mudaria dois agregados na mesma transação.
+
+### Só voo agendado recebe assento
+2026-09-29
+
+Ao expor a alocação pela API, percebi que o voo deixava alocar assento num voo cancelado ou já realizado. Coloquei essa verificação dentro do próprio voo, junto da regra de lotação.
 
 
 # Agregado Aeronave — Matheus Andrade
