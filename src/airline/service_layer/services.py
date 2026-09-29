@@ -14,7 +14,7 @@ from airline.domain.repositories import (
     TripulanteRepository,
     EscalaRepository
 )
-from airline.domain.exception import CpfJaCadastradoException, PassageiroNaoEncontrado, ReservaNaoEncontrada
+from airline.domain.exception import CpfJaCadastradoException, PassageiroNaoEncontrado, ReservaNaoEncontrada, AeronaveJaExiste
 from airline.domain.model import Voo, Trecho
 from airline.domain.repositories import VooRepository
 from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel
@@ -137,6 +137,10 @@ class AeronaveService:
         self.aeronave_repository = aeronave_repository
 
     def cadastrar_aeronave(self, prefixo, modelo, capacidade, validade_vistoria):
+        if self.aeronave_repository.buscar(prefixo) is not None:
+            raise AeronaveJaExiste(
+            "Ja existe uma aeronave cadastrada com este prefixo."
+        )
         aeronave = Aeronave(
             prefixo=prefixo,
             modelo=modelo,

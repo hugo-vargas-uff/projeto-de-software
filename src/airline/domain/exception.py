@@ -22,3 +22,6 @@ class AeronaveNaoEncontrada(Exception):
 
 class AeronaveIndisponivel(Exception):
     pass
+
+class AeronaveJaExiste(Exception):
+    pass

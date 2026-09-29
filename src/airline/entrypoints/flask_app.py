@@ -13,7 +13,7 @@ from datetime import date
 from airline.adapters.repository import SqlAlchemyVooRepository, SqlAlchemyAeronaveRepository
 from airline.service_layer.services import VooService, AeronaveService
 from airline.domain.model import ErroRegraVoo
-from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel, \
+from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveJaExiste, AeronaveIndisponivel, \
     PassageiroNaoEncontrado, CpfJaCadastradoException
 from airline.adapters.repository import SqlAlchemyPassageiroRepository
 from airline.service_layer.services import PassageiroService
@@ -238,6 +238,11 @@ def cadastrar_aeronave():
             "capacidade": aeronave.capacidade,
             "validade_vistoria": aeronave.validade_vistoria.isoformat()
         }, 201
+
+    except AeronaveJaExiste as erro:
+        return {
+            "mensagem": str(erro)
+        }, 400
 
     finally:
         session.close()

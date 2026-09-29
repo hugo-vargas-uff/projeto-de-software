@@ -46,3 +46,24 @@ def test_deve_retornar_404_quando_aeronave_nao_existir(client):
     body = response.get_json()
 
     assert body["erro"] == "Aeronave nao encontrada"
+
+
+def test_cadastrar_aeronave_repetida_deve_retornar_400(client):
+    dados = {
+        "prefixo": "PT-MVA",
+        "modelo": "Boeing 737",
+        "capacidade": 180,
+        "validade_vistoria": "2026-12-31"
+    }
+
+    primeira = client.post("/aeronaves", json=dados)
+    segunda = client.post("/aeronaves", json=dados)
+
+    assert primeira.status_code == 201
+    assert segunda.status_code == 400
+
+    body = segunda.get_json()
+
+    assert body["mensagem"] == (
+        "Ja existe uma aeronave cadastrada com este prefixo."
+    )
