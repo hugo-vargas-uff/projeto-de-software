@@ -80,12 +80,69 @@ Fiz os testes de integração usando comandos SQL puro para não usar o próprio
 ### Atualização de voos no método salvar
 2026-09-27
 
-Mudei o comportamento do salvar() para ele procurar o voo no banco antes de fazer qualquer coisa. Se o voo já existir ele faz um update e se não existir ele cria um novo. Tive que fazer isso porque as informações do voo mudam bastante, principalmente a quantidade de assentos que cai toda vez que uma reserva é feita. Se o repositório só soubesse fazer insert, o banco nunca ia receber a atualização dos assentos e ia dar erro de chave primária duplicada na hora de salvar a mudança.
+Mudei o comportamento do salvar() para ele procurar o voo no banco antes de fazer qualquer coisa. Se o voo já existir ele faz um update e se não existir ele cria um novo. Tive que fazer isso porque o voo muda depois de salvo, o status muda ao cancelar ou realizar, e os assentos diminuem a cada alocação. Se o repositório só soubesse fazer insert, o banco nunca ia receber essas mudanças e ia dar erro de chave primária duplicada na hora de salvar.
+
 
 ### Voo não pode ser criado incompleto
 2026-09-27
 
 Agora não dá para criar um voo sem rota, sem aeronave ou sem capacidade. A capacidade zero como padrão também foi alterada, porque criava um voo que já nascia lotado.
+
+## Entrega da Fase 1 - Voo
+
+Arquivos: src/airline/service_layer/services.py, src/airline/domain/exception.py, src/airline/entrypoints/flask_app.py, tests/unit/service_layer/test_voo_service.py, tests/e2e/test_api_voo.py, tests/conftest.py
+
+Commits:
+- 57db2de - 29/09 - test: agendar voo copia a capacidade da aeronave
+- 738f24e - 29/09 - feat: cria vooService com agendar_voo
+- 088be94 - 29/09 - test: agendar voo recusa numero repetido e aeronave indisponivel
+- 7c3595c - 29/09 - feat: valida numero repetido e disponibilidade da aeronave
+- 9fbe23a - 29/09 - test: cancelar voo pelo servico
+- ce8e2d5 - 29/09 - feat: cancelar_voo no service
+- 53f6258 - 29/09 - test: realizar e consultar voo pelo servico
+- 57adc44 - 29/09 - feat: realizar e consultar voo no service
+- b3bb806 - 29/09 - test: adiciona conftest para o flask
+- 6af90be - 29/09 - test: agendar e consultar voo pela API
+- e13fa2c - 29/09 - conteudo do test_api_voo
+- e5ef788 - 29/09 - feat: rotas de agendar e consultar voo
+- 9766150 - 29/09 - test: cancelar voo pela api
+- 475920c - 29/09 - feat: rotas de cancelar e realizar voo
+- abc20da - 29/09 - test: fix
+
+### Agendar um voo consulta a aeronave
+2026-09-29
+
+A regra de manutenção da Aeronave passou a valer no sistema, porque até então nada impedia de marcar um voo com um avião em manutenção. Os dois agregados continuam separados, o Voo só guarda o prefixo, e quem conversa com a Aeronave é o serviço.
+
+### O commit fica no serviço
+2026-09-29
+
+O repositório do Voo nunca fez commit, então quem confirma a operação depois que tudo deu certo é o serviço. Nos testes uso uma sessão falsa que só anota se o commit foi chamado, e confiro que ele não acontece quando o caso de uso termina em erro.
+
+### A data de hoje entra como parâmetro
+2026-09-29
+
+O agendar recebe a data em vez de consultar o relógio do computador, pois o teste precisa dar o mesmo resultado em qualquer dia. Quem passa a data real é a rota do Flask.
+
+### O fake de voo passou a guardar por número
+2026-09-29
+
+O repositório falso guardava os voos numa lista, então salvar de novo um voo cancelado deixava duas entradas. Troquei por um dicionário com o número do voo como chave, para ele se comportar como o repositório real, que atualiza em vez de duplicar.
+
+### 404 quando não existe, 400 quando uma regra impede
+2026-09-29
+
+Para quem usa a API saber se errou o identificador ou se esbarrou numa regra do negócio.
+
+### Fixtures de teste ponta a ponta no conftest
+2026-09-29
+
+Como o app do Flask que o Filipe fez já conecta num banco SQLite fixo, criei duas fixtures no conftest pra compartilhar com o grupo o client da API e a sessão do banco. A do client limpa as tabelas antes de cada teste, pra um teste não ver os dados do outro. A da sessão eu uso pra colocar uma aeronave direto no banco antes de testar o agendamento, já que ainda não temos rota pra cadastrar aeronave.
+
+### Limitação, cancelar um voo não cancela as reservas
+2026-09-29
+
+Hoje, cancelar um voo só muda o status dele, e as reservas daquele voo continuam confirmadas. Avisar a Reserva de dentro do Voo misturaria os dois agregados.
 
 
 # Agregado Aeronave — Matheus Andrade
