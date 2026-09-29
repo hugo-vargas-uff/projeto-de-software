@@ -274,3 +274,11 @@ class VooService:
 
     def consultar_voo(self, numero_voo):
         return self._buscar_voo(numero_voo)
+
+    def alocar_assento(self, numero_voo):
+        #regra de lotacao e de voo agendado fica aqui
+        voo = self._buscar_voo(numero_voo)
+        voo.alocar_assento()
+        self.voo_repository.salvar(voo)
+        self.session.commit()
+        return voo.assentos_disponiveis

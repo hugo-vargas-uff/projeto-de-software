@@ -152,3 +152,25 @@ def test_consultar_voo_inexistente_da_erro():
 
     with pytest.raises(VooNaoEncontrado):
         servico.consultar_voo("NAO-EXISTE")
+
+
+# alocar assento
+
+def test_alocar_assento_diminui_assentos_e_confirma():
+    servico, voos, aeronaves, session = montar_servico()
+    voos.salvar(novo_voo("MV-100"))  #nasce com 150 assentos
+    restantes = servico.alocar_assento("MV-100")
+
+    assert restantes == 149
+    assert voos.buscar("MV-100").assentos_disponiveis == 149
+    assert session.committed is True
+
+def test_alocar_assento_em_voo_lotado_da_erro():
+    servico, voos, aeronaves, session = montar_servico()
+    voo = Voo(numero_voo="MV-101", trecho=Trecho("GRU", "GIG"), aeronave_id="PR-400", capacidade_assentos=0)
+    voos.salvar(voo)
+
+    #quem proibe e o proprio voo, o servico so deixa o erro passar
+    with pytest.raises(ErroRegraVoo):
+        servico.alocar_assento("MV-101")
+    assert session.committed is False
