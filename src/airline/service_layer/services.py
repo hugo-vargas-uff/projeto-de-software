@@ -15,7 +15,8 @@ from airline.domain.repositories import (
     EscalaRepository
 )
 from airline.domain.exception import CpfJaCadastradoException, PassageiroNaoEncontrado
-
+from airline.domain.model import Voo, Trecho
+from airline.domain.repositories import VooRepository
 
 class ReservaService:
 
@@ -149,3 +150,27 @@ class AeronaveService:
         if aeronave is None:
             return None
         return aeronave.esta_disponivel(hoje)
+
+
+# --- Serviço Voo
+
+class VooService:
+
+    def __init__(self, voo_repository: VooRepository, aeronave_repository: AeronaveRepository, session):
+        self.voo_repository = voo_repository
+        self.aeronave_repository = aeronave_repository
+        self.session = session
+
+    def agendar_voo(self, numero_voo, origem, destino, prefixo_aeronave, hoje):
+        aeronave = self.aeronave_repository.buscar(prefixo_aeronave)
+
+        #nasce com a capacidade copiada da aeronave
+        voo = Voo(numero_voo=numero_voo,
+            trecho=Trecho(origem, destino),
+            aeronave_id=prefixo_aeronave,
+            capacidade_assentos=aeronave.capacidade,
+        )
+
+        self.voo_repository.salvar(voo)
+        self.session.commit()
+        return voo.numero_voo
