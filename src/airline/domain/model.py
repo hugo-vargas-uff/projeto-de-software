@@ -84,10 +84,12 @@ class Voo:
         self.status=StatusVoo.REALIZADO
 
     def alocar_assento(self):
+        #so voo agendado aceita passageiro novo
+        if self.status != StatusVoo.AGENDADO:
+            raise ErroRegraVoo("So pode alocar assento em voo agendado")
         if self.assentos_disponiveis <= 0:
             raise ErroRegraVoo("lotado, sem assentos livres.")
         self.assentos_disponiveis -= 1
-
 
 
 # Agregado Aeronave

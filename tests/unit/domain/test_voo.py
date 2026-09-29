@@ -69,3 +69,17 @@ def test_erro_alocar_voolotado():
     with pytest.raises(ErroRegraVoo):
         voo.alocar_assento()
 
+def test_erro_alocar_assento_em_voo_cancelado():
+    rota = Trecho(origem="SP", destino="RJ")
+    voo = Voo(numero_voo="MV-300", trecho=rota, aeronave_id="A12", capacidade_assentos=10)
+    voo.cancelar()
+    #voo cancelado nao pode receber passageiro, mesmo tendo assento livre
+    with pytest.raises(ErroRegraVoo):
+        voo.alocar_assento()
+
+def test_erro_alocar_assento_em_voo_realizado():
+    rota = Trecho(origem="SP", destino="RJ")
+    voo = Voo(numero_voo="MV-301", trecho=rota, aeronave_id="A12", capacidade_assentos=10)
+    voo.realizar()
+    with pytest.raises(ErroRegraVoo):
+        voo.alocar_assento()
