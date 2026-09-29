@@ -67,3 +67,78 @@ def test_api_erro_ao_escalar_com_horas_acima_do_teto(client):
 
     assert response.status_code == 400
     assert "Teto regulamentar de horas ultrapassado" in response.get_json()["mensagem"]
+
+
+def test_api_deve_abrir_despacho(client):
+    response = client.post("/despachos", json={
+        "voo_id": "MV-3000",
+        "carga_maxima": 1000
+    })
+
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data["voo_id"] == "MV-3000"
+    assert data["carga_maxima"] == 1000
+    assert data["peso_total"] == 0
+    assert "id" in data
+
+
+def test_api_erro_ao_abrir_dois_despachos_para_o_mesmo_voo(client):
+    client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 1000})
+
+    response = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 500})
+
+    assert response.status_code == 400
+    assert "Ja existe um despacho aberto para este voo" in response.get_json()["mensagem"]
+
+
+def test_api_deve_adicionar_volume_no_despacho(client):
+    resp_d = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 1000})
+    despacho_id = resp_d.get_json()["id"]
+
+    response = client.post(f"/despachos/{despacho_id}/volumes", json={"peso": 150})
+
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data["peso_total"] == 150
+    assert data["peso_disponivel"] == 850
+
+
+def test_api_erro_ao_adicionar_volume_acima_da_carga_maxima(client):
+    resp_d = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 1000})
+    despacho_id = resp_d.get_json()["id"]
+
+    client.post(f"/despachos/{despacho_id}/volumes", json={"peso": 900})
+    response = client.post(f"/despachos/{despacho_id}/volumes", json={"peso": 200})
+
+    assert response.status_code == 400
+    assert "ultrapassa a carga maxima do despacho" in response.get_json()["mensagem"]
+
+
+def test_api_erro_ao_adicionar_volume_em_despacho_inexistente(client):
+    response = client.post(f"/despachos/{uuid.uuid4()}/volumes", json={"peso": 100})
+
+    assert response.status_code == 404
+
+
+def test_api_deve_consultar_despacho(client):
+    resp_d = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 1000})
+    despacho_id = resp_d.get_json()["id"]
+    client.post(f"/despachos/{despacho_id}/volumes", json={"peso": 100})
+    client.post(f"/despachos/{despacho_id}/volumes", json={"peso": 250})
+
+    response = client.get(f"/despachos/{despacho_id}")
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["id"] == despacho_id
+    assert data["voo_id"] == "MV-3000"
+    assert data["volumes"] == [100, 250]
+    assert data["peso_total"] == 350
+    assert data["peso_disponivel"] == 650
+
+
+def test_api_erro_ao_consultar_despacho_inexistente(client):
+    response = client.get(f"/despachos/{uuid.uuid4()}")
+
+    assert response.status_code == 404
