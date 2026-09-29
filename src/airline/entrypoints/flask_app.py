@@ -4,15 +4,19 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from airline.adapters.orm import Base
-from airline.adapters.repository import SqlAlchemyTripulanteRepository, SqlAlchemyEscalaRepository
-from airline.service_layer.services import TripulanteService, EscalaService
+from airline.adapters.repository import SqlAlchemyTripulanteRepository, SqlAlchemyEscalaRepository, \
+    SqlAlchemyReservaRepository
+from airline.service_layer.services import TripulanteService, EscalaService, ReservaService
 from airline.domain.model import CargoTripulante, ErroRegraTripulacao
 
 from datetime import date
 from airline.adapters.repository import SqlAlchemyVooRepository, SqlAlchemyAeronaveRepository
 from airline.service_layer.services import VooService
 from airline.domain.model import ErroRegraVoo
-from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel
+from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel, \
+    PassageiroNaoEncontrado, CpfJaCadastradoException
+from airline.adapters.repository import SqlAlchemyPassageiroRepository
+from airline.service_layer.services import PassageiroService
 
 app = Flask(__name__)
 
@@ -176,7 +180,7 @@ def consultar_despacho(despacho_id):
 
 # voo
 def montar_voo_service(session):
-    #liga as pecas reais: repositorios SQLAlchemy usando a mesma sessao que o servico vai confirmar
+    # liga as pecas reais: repositorios SQLAlchemy usando a mesma sessao que o servico vai confirmar
     return VooService(
         SqlAlchemyVooRepository(session),
         SqlAlchemyAeronaveRepository(session),
@@ -201,7 +205,7 @@ def agendar_voo():
     except (VooJaExiste, AeronaveIndisponivel) as erro:
         return {"mensagem": str(erro)}, 400
     finally:
-        session.close()  #roda sempre, com ou sem erro
+        session.close()  # roda sempre, com ou sem erro
 
     return {"numero_voo": numero_voo}, 201
 
@@ -216,7 +220,7 @@ def consultar_voo(numero_voo):
     finally:
         session.close()
 
-    #a rota so traduz o Voo para um dicionario, que o Flask devolve como JSON
+    # a rota so traduz o Voo para um dicionario, que o Flask devolve como JSON
     return {
         "numero_voo": voo.numero_voo,
         "origem": voo.trecho.origem,
@@ -233,7 +237,7 @@ def cancelar_voo(numero_voo):
         status = montar_voo_service(session).cancelar_voo(numero_voo)
     except VooNaoEncontrado as erro:
         return {"mensagem": str(erro)}, 404
-    except ErroRegraVoo as erro:  #regra do dominio, por exemplo cancelar um voo ja realizado
+    except ErroRegraVoo as erro:  # regra do dominio, por exemplo cancelar um voo ja realizado
         return {"mensagem": str(erro)}, 400
     finally:
         session.close()
@@ -255,6 +259,109 @@ def realizar_voo(numero_voo):
 
     return {"numero_voo": numero_voo, "status": status}, 200
 
+
+@app.post("/passageiros")
+def criar_passageiro():
+    data = request.get_json()
+
+    session = SessionFactory()
+
+    try:
+        repository = SqlAlchemyPassageiroRepository(session)
+        service = PassageiroService(repository)
+
+        passageiro = service.criar_passageiro(nome=data["nome"], cpf=data["cpf"])
+
+        return jsonify({
+            "id": str(passageiro.id),
+            "nome": passageiro.nome,
+            "cpf": passageiro.cpf
+        }), 201
+
+    except CpfJaCadastradoException as e:
+        return jsonify({ "mensagem": str(e) }), 409
+
+    finally:
+        session.close()
+
+@app.get("/passageiros/<cpf>")
+def buscar_passageiro(cpf):
+
+    session = SessionFactory()
+
+    try:
+        repository = SqlAlchemyPassageiroRepository(session)
+        service = PassageiroService(repository)
+
+        passageiro = service.buscar(cpf)
+
+        return jsonify({
+            "id": str(passageiro.id),
+            "nome": passageiro.nome,
+            "cpf": passageiro.cpf
+        }), 200
+
+    except PassageiroNaoEncontrado as e:
+        return jsonify({ "mensagem": str(e) }), 404
+
+    finally:
+        session.close()
+
+@app.post("/reservas")
+def criar_reserva():
+    data = request.get_json()
+
+    session = SessionFactory()
+
+    try:
+        reserva_repository = SqlAlchemyReservaRepository(session)
+        passageiro_repository = SqlAlchemyPassageiroRepository(session)
+        voo_repository = SqlAlchemyVooRepository(session)
+
+        service = ReservaService(
+            reserva_repository=reserva_repository,
+            passageiro_repository=passageiro_repository,
+            voo_repository=voo_repository
+        )
+
+        reserva = service.criar_reserva(voo_id=data["voo_id"], passageiro_id=uuid.UUID(data["passageiro_id"]))
+
+        return jsonify({
+            "voo_id": reserva.voo_id,
+            "passageiro_id": str(reserva.passageiro_id),
+            "status": reserva.status.value
+        }), 201
+
+    except PassageiroNaoEncontrado as e:
+        return jsonify({ "mensagem": str(e) }), 404
+
+    except VooNaoEncontrado as e:
+        return jsonify({ "mensagem": str(e) }), 404
+
+    finally:
+        session.close()
+
+@app.get("/reservas/<voo_id>/<passageiro_id>")
+def buscar_reserva(voo_id, passageiro_id):
+
+    session = SessionFactory()
+
+    try:
+        reserva_repository = SqlAlchemyReservaRepository(session)
+
+        reserva = reserva_repository.buscar(voo_id=voo_id,passageiro_id=uuid.UUID(passageiro_id))
+
+        if reserva is None:
+            return jsonify({ "mensagem": "Reserva nao encontrada" }), 404
+
+        return jsonify({
+            "voo_id": reserva.voo_id,
+            "passageiro_id": str(reserva.passageiro_id),
+            "status": reserva.status.value
+        }), 200
+
+    finally:
+        session.close()
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
