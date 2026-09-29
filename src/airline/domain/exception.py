@@ -4,6 +4,9 @@ class CpfJaCadastradoException(Exception):
 class PassageiroNaoEncontrado(Exception):
     pass
 
+class DespachoNaoEncontrado(Exception):
+    pass
+
 # erros dos casos de uso do Voo
 class VooJaExiste(Exception):
     pass

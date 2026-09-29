@@ -100,6 +100,80 @@ def consultar_escala(voo_id):
     }), 200
 
 
+# --- Despacho
+
+from airline.adapters.repository import SqlAlchemyDespachoRepository
+from airline.service_layer.services import DespachoService
+from airline.domain.model import ErroRegraDespacho
+from airline.domain.exception import DespachoNaoEncontrado
+
+
+@app.route("/despachos", methods=["POST"])
+def abrir_despacho():
+    data = request.get_json()
+    session = SessionFactory()
+    repo = SqlAlchemyDespachoRepository(session)
+    service = DespachoService(repo)
+
+    try:
+        despacho = service.abrir_despacho(
+            voo_id=data["voo_id"],
+            carga_maxima=float(data["carga_maxima"])
+        )
+        return jsonify({
+            "id": str(despacho.id),
+            "voo_id": despacho.voo_id,
+            "carga_maxima": despacho.carga_maxima,
+            "peso_total": despacho.peso_total(),
+            "peso_disponivel": despacho.peso_disponivel()
+        }), 201
+    except ErroRegraDespacho as e:
+        return jsonify({"mensagem": str(e)}), 400
+
+
+@app.route("/despachos/<despacho_id>/volumes", methods=["POST"])
+def adicionar_volume(despacho_id):
+    data = request.get_json()
+    session = SessionFactory()
+    repo = SqlAlchemyDespachoRepository(session)
+    service = DespachoService(repo)
+
+    try:
+        despacho = service.adicionar_volume(uuid.UUID(despacho_id), peso=float(data["peso"]))
+        return jsonify({
+            "id": str(despacho.id),
+            "voo_id": despacho.voo_id,
+            "carga_maxima": despacho.carga_maxima,
+            "peso_total": despacho.peso_total(),
+            "peso_disponivel": despacho.peso_disponivel()
+        }), 201
+    except DespachoNaoEncontrado as e:
+        return jsonify({"mensagem": str(e)}), 404
+    except ErroRegraDespacho as e:
+        return jsonify({"mensagem": str(e)}), 400
+
+
+@app.route("/despachos/<despacho_id>", methods=["GET"])
+def consultar_despacho(despacho_id):
+    session = SessionFactory()
+    repo = SqlAlchemyDespachoRepository(session)
+    service = DespachoService(repo)
+
+    try:
+        despacho = service.consultar_despacho(uuid.UUID(despacho_id))
+    except DespachoNaoEncontrado as e:
+        return jsonify({"mensagem": str(e)}), 404
+
+    return jsonify({
+        "id": str(despacho.id),
+        "voo_id": despacho.voo_id,
+        "carga_maxima": despacho.carga_maxima,
+        "volumes": [volume.peso for volume in despacho.volumes],
+        "peso_total": despacho.peso_total(),
+        "peso_disponivel": despacho.peso_disponivel()
+    }), 200
+
+
 # voo
 def montar_voo_service(session):
     #liga as pecas reais: repositorios SQLAlchemy usando a mesma sessao que o servico vai confirmar
