@@ -4,6 +4,9 @@ class CpfJaCadastradoException(Exception):
 class PassageiroNaoEncontrado(Exception):
     pass
 
+class ReservaNaoEncontrada(Exception):
+    pass
+
 class DespachoNaoEncontrado(Exception):
     pass
 
