@@ -307,7 +307,7 @@ Usei IA para revisar a estrutura do AeronaveService, tirar dúvidas sobre a orga
 
 
 
-# Agregado Reserva
+# Agregado Reserva e Agregado Passageiro
 
 ## Entidade Reserva
 2026-09-21
@@ -330,6 +330,58 @@ Criei StatusReserva("CONFIRMADA", "CANCELADA") para padronizar valores.
 
 Passageiro possui um identificador unico(UUID), nome e CPF.
 adicionei cpf para servir como um identificador externo para facilitar futuras buscas por passageiros.
+
+## metodo Restaurar
+criei esse metodo para possibilitar recuperar corretamente uma entidade do banco de dados.
+
+
+# Repositorios de Dominio
+repositórios de domínio servem como contratos para separar as regras de negócio da persistência dos dados.
+são ports para possibilitar a comunicação do dominio com elementos externos
+
+# Exceções de domínio
+CpfJaCadastradoException, PassageiroNaoEncontrado e ReservaNaoEncontrada são
+exceções utilizadas para representar situações inválidas ou inconsistentes no domínio.
+
+# Camada de serviço
+
+ReservaService e PassageiroService são responsáveis por coordenar e validar os casos de uso. 
+utiliza os repositórios para acessar os dados sem acoplar as regras de negócio diretamente à persistência.
+
+## ReservaService
+criar_reserva() cria uma reserva, verificando se existe determinado passageiro e determinado voo.
+buscar() busca uma reserva especifica de determinado passageiro em determinado voo.
+contar_reserva_por_voo conta a quantidade de reservas já feitas para determinado voo
+
+## PassageiroService
+criar_passageiro() cria um passageiro, verificando se já nao existe um passageiro com determinado cpf.
+buscar() busca um passageiro pelo seu cpf
+
+# Models de persistência
+
+ReservaModel e PassageiroModel representam as tabelas de persistência utilizadas pelo SQLAlchemy.
+Os métodos from_domain e to_domain foram criados para converter models ORM para entidades do domínio e vice versa.
+
+# Adapters de persistência
+
+SqlAlchemyReservaRepository e SqlAlchemyPassageiroRepository implementam os contratos dos repositórios utilizando SQLAlchemy para acessar o banco de dados.
+
+O SqlAlchemyReservaRepository possui métodos para salvar, buscar uma reserva por voo e
+passageiro e contar reservas confirmadas de um voo.
+
+SqlAlchemyPassageiroRepository permite salvar e buscar passageiros por ID ou CPF, convertendo os dados entre o domínio e
+os models de persistência.
+
+# Endpoints
+
+Os endpoints de Passageiro permitem criar e buscar passageiros.
+retorna 201 na criação de passageiro, 200 na consulta de um passageiro, 409 quando um passageiro tenta se cadastrar com um CPF já está cadastrado e 404 quando o
+passageiro não é encontrado.
+
+Os endpoints de Reserva permitem criar e consultar reservas.
+retorna 201 ao criar uma reserva, 200 na consulta de uma reserva e 404 quando o passageiro, voo ou reserva não é encontrado.
+
+As requisições utilizam os services e repositories para manter a lógica de negócio separada da camada HTTP.
 
 
 
