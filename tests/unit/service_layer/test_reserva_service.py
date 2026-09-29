@@ -1,8 +1,9 @@
-from airline.domain.model import Reserva, Passageiro, StatusReserva
+from airline.domain.model import Reserva, Passageiro, StatusReserva, Trecho, Voo
 from airline.service_layer.services import ReservaService
 from airline.service_layer.services import ReservaRepository
 from airline.domain.exception import PassageiroNaoEncontrado
 from test_passageiro_service import FakePassageiroRepository
+from test_voo_service import FakeVooRepository
 
 import pytest
 
@@ -31,12 +32,29 @@ def test_deve_criar_reserva():
 
     reserva_repository = FakeReservaRepository()
     passageiro_repository = FakePassageiroRepository()
-    service = ReservaService(reserva_repository, passageiro_repository)
+    voo_repository = FakeVooRepository()
 
-    passageiro = Passageiro(nome="pedro", cpf="717.774.400-25")
+    service = ReservaService(
+        reserva_repository,
+        passageiro_repository,
+        voo_repository
+    )
+
+    passageiro = Passageiro(nome="pedro",cpf="717.774.400-25")
+
+    trecho = Trecho(origem="Rio de Janeiro",destino="São Paulo")
+
+    voo = Voo(
+        numero_voo="voo-123",
+        trecho=trecho,
+        aeronave_id="PT-ABC",
+        capacidade_assentos=180
+    )
 
     passageiro_repository.salvar(passageiro)
-    reserva = service.criar_reserva(voo_id="voo-123", passageiro_id=passageiro.id)
+    voo_repository.salvar(voo)
+
+    reserva = service.criar_reserva(voo_id="voo-123",passageiro_id=passageiro.id)
 
     assert reserva.voo_id == "voo-123"
     assert reserva.passageiro_id == passageiro.id
@@ -46,17 +64,34 @@ def test_buscar_reserva():
 
     reserva_repository = FakeReservaRepository()
     passageiro_repository = FakePassageiroRepository()
+    voo_repository = FakeVooRepository()
 
-    service = ReservaService(reserva_repository, passageiro_repository)
+    service = ReservaService(
+        reserva_repository,
+        passageiro_repository,
+        voo_repository
+    )
 
-    passageiro = Passageiro(nome="pedro", cpf="717.774.400-25")
-    reserva = Reserva(voo_id="voo-123", passageiro_id=passageiro.id)
+    passageiro = Passageiro(nome="pedro",cpf="717.774.400-25")
+
+    trecho = Trecho(origem="Rio de Janeiro",destino="São Paulo")
+
+    voo = Voo(
+        numero_voo="voo-123",
+        trecho=trecho,
+        aeronave_id="PT-ABC",
+        capacidade_assentos=180
+    )
+
+    reserva = Reserva(voo_id="voo-123",passageiro_id=passageiro.id)
 
     passageiro_repository.salvar(passageiro)
+    voo_repository.salvar(voo)
     reserva_repository.salvar(reserva)
 
-    reserva_salva = service.buscar(voo_id=reserva.voo_id, passageiro_id=reserva.passageiro_id)
+    reserva_salva = service.buscar(voo_id=reserva.voo_id,passageiro_id=reserva.passageiro_id)
 
+    assert reserva_salva is not None
     assert reserva_salva.voo_id == "voo-123"
     assert reserva_salva.passageiro_id == passageiro.id
     assert reserva_salva.status == StatusReserva.CONFIRMADA
@@ -74,7 +109,13 @@ def test_contar_reservas_por_voo():
 
     reserva_repository = FakeReservaRepository()
     passageiro_repository = FakePassageiroRepository()
-    service = ReservaService(reserva_repository, passageiro_repository)
+    voo_repository = FakeVooRepository()
+
+    service = ReservaService(
+        reserva_repository,
+        passageiro_repository,
+        voo_repository
+    )
 
     reserva_repository.salvar(reserva1)
     reserva_repository.salvar(reserva2)
@@ -89,7 +130,13 @@ def test_lanca_excecao_tentando_criar_reserva_sem_passageiro():
 
     reserva_repository = FakeReservaRepository()
     passageiro_repository = FakePassageiroRepository()
-    service = ReservaService(reserva_repository, passageiro_repository)
+    voo_repository = FakeVooRepository()
+
+    service = ReservaService(
+        reserva_repository,
+        passageiro_repository,
+        voo_repository
+    )
 
     with pytest.raises(PassageiroNaoEncontrado, match="Passageiro nao encontrado"):
         service.criar_reserva(voo_id="voo-123", passageiro_id="ID-NAO-EXISTENTE")
