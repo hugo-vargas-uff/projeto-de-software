@@ -197,3 +197,14 @@ class VooService:
         if voo is None:
             raise VooNaoEncontrado(f"Voo {numero_voo} nao encontrado")
         return voo
+
+    def realizar_voo(self, numero_voo):
+        voo = self._buscar_voo(numero_voo)
+        voo.realizar()  #so passa se o voo estiver agendado
+        self.voo_repository.salvar(voo)
+        self.session.commit()
+        return voo.status.value
+
+    def consultar_voo(self, numero_voo):
+        return self._buscar_voo(numero_voo)
+
