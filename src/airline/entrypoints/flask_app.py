@@ -11,12 +11,13 @@ from airline.domain.model import CargoTripulante, ErroRegraTripulacao
 
 from datetime import date
 from airline.adapters.repository import SqlAlchemyVooRepository, SqlAlchemyAeronaveRepository
-from airline.service_layer.services import VooService
+from airline.service_layer.services import VooService, AeronaveService
 from airline.domain.model import ErroRegraVoo
 from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel, \
     PassageiroNaoEncontrado, CpfJaCadastradoException
 from airline.adapters.repository import SqlAlchemyPassageiroRepository
 from airline.service_layer.services import PassageiroService
+
 
 app = Flask(__name__)
 
@@ -187,6 +188,10 @@ def montar_voo_service(session):
         session,
     )
 
+def montar_aeronave_service(session):
+    repository = SqlAlchemyAeronaveRepository(session)
+    return AeronaveService(repository)
+
 
 @app.route("/voos", methods=["POST"])
 def agendar_voo():
@@ -208,6 +213,59 @@ def agendar_voo():
         session.close()  # roda sempre, com ou sem erro
 
     return {"numero_voo": numero_voo}, 201
+
+@app.post("/aeronaves")
+def cadastrar_aeronave():
+    dados = request.get_json()
+
+    session = SessionFactory()
+
+    try:
+        service = montar_aeronave_service(session)
+
+        aeronave = service.cadastrar_aeronave(
+            prefixo=dados["prefixo"],
+            modelo=dados["modelo"],
+            capacidade=dados["capacidade"],
+            validade_vistoria=date.fromisoformat(
+                dados["validade_vistoria"]
+            )
+        )
+
+        return {
+            "prefixo": aeronave.prefixo,
+            "modelo": aeronave.modelo,
+            "capacidade": aeronave.capacidade,
+            "validade_vistoria": aeronave.validade_vistoria.isoformat()
+        }, 201
+
+    finally:
+        session.close()
+
+@app.get("/aeronaves/<prefixo>/disponibilidade")
+def consultar_disponibilidade_aeronave(prefixo):
+    session = SessionFactory()
+
+    try:
+        service = montar_aeronave_service(session)
+
+        disponivel = service.consultar_disponibilidade(
+            prefixo=prefixo,
+            hoje=date.today()
+        )
+
+        if disponivel is None:
+            return {
+                "erro": "Aeronave nao encontrada"
+            }, 404
+
+        return {
+            "prefixo": prefixo,
+            "disponivel": disponivel
+        }, 200
+
+    finally:
+        session.close()
 
 
 @app.route("/voos/<numero_voo>", methods=["GET"])
