@@ -41,8 +41,8 @@ def test_agendar_e_consultar_voo_pela_api(client, session_factory):
     assert dados["assentos_disponiveis"]== 150
     assert dados["status"] == "AGENDADO"
 
-def test_cancelar_voo_pela_api(client, fabrica_de_sessao):
-    cadastrar_aeronave(fabrica_de_sessao)
+def test_cancelar_voo_pela_api(client, session_factory):
+    cadastrar_aeronave(session_factory)
     agendar(client, "MV-200")
 
     resposta = client.post("/voos/MV-200/cancelar")
