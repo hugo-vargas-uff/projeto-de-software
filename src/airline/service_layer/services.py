@@ -183,3 +183,17 @@ class VooService:
         self.voo_repository.salvar(voo)
         self.session.commit()
         return voo.numero_voo
+
+    def cancelar_voo(self, numero_voo):
+        voo = self._buscar_voo(numero_voo)
+        voo.cancelar()  #se o voo ja foi realizado ou cancelado, Voo lanca ErroRegraVoo
+        self.voo_repository.salvar(voo)
+        self.session.commit()
+        return voo.status.value
+
+    def _buscar_voo(self, numero_voo):
+        #busca usada por varios casos de uso, se nao achar, avisa com um erro claro
+        voo = self.voo_repository.buscar(numero_voo)
+        if voo is None:
+            raise VooNaoEncontrado(f"Voo {numero_voo} nao encontrado")
+        return voo
