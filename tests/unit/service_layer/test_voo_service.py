@@ -90,3 +90,25 @@ def test_agendar_voo_com_aeronave_em_manutencao_da_erro():
 
     assert voos.buscar("MV-100") is None
     assert session.committed is False
+
+
+# cancelar voo
+
+def test_cancelar_voo_muda_o_status_e_confirma():
+    servico, voos, aeronaves, session = montar_servico()
+    voos.salvar(novo_voo("MV-100"))
+
+    servico.cancelar_voo("MV-100")
+
+    assert voos.buscar("MV-100").status == StatusVoo.CANCELADO
+    assert session.committed is True
+
+def test_cancelar_voo_inexistente_da_erro():
+    servico, voos, aeronaves, session = montar_servico()
+
+    with pytest.raises(VooNaoEncontrado):
+        servico.cancelar_voo("NAO-EXISTE")
+
+    assert session.committed is False
+
+
