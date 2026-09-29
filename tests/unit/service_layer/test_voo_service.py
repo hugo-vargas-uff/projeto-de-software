@@ -112,3 +112,43 @@ def test_cancelar_voo_inexistente_da_erro():
     assert session.committed is False
 
 
+# realizar voo
+
+def test_realizar_voo_muda_o_status_e_confirma():
+    servico, voos, aeronaves, session = montar_servico()
+    voos.salvar(novo_voo("MV-100"))
+
+    servico.realizar_voo("MV-100")
+
+    assert voos.buscar("MV-100").status == StatusVoo.REALIZADO
+    assert session.committed is True
+
+def test_realizar_voo_cancelado_da_erro_do_dominio():
+    servico, voos, aeronaves, session = montar_servico()
+    voo = novo_voo("MV-100")
+    voo.cancelar()
+    voos.salvar(voo)
+
+    #quem proibe e o proprio Voo, o servico so deixa o erro passar
+    with pytest.raises(ErroRegraVoo):
+        servico.realizar_voo("MV-100")
+
+    assert session.committed is False
+
+
+# consultar voo
+
+def test_consultar_voo_devolve_o_voo():
+    servico, voos, aeronaves, session = montar_servico()
+    voos.salvar(novo_voo("MV-100"))
+
+    voo = servico.consultar_voo("MV-100")
+
+    assert voo.numero_voo == "MV-100"
+    assert session.committed is False  #nada muda
+
+def test_consultar_voo_inexistente_da_erro():
+    servico, voos, aeronaves, session = montar_servico()
+
+    with pytest.raises(VooNaoEncontrado):
+        servico.consultar_voo("NAO-EXISTE")
