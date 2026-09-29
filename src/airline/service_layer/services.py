@@ -17,6 +17,7 @@ from airline.domain.repositories import (
 from airline.domain.exception import CpfJaCadastradoException, PassageiroNaoEncontrado
 from airline.domain.model import Voo, Trecho
 from airline.domain.repositories import VooRepository
+from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel
 
 class ReservaService:
 
@@ -162,10 +163,18 @@ class VooService:
         self.session = session
 
     def agendar_voo(self, numero_voo, origem, destino, prefixo_aeronave, hoje):
-        aeronave = self.aeronave_repository.buscar(prefixo_aeronave)
+        if self.voo_repository.buscar(numero_voo) is not None:
+            raise VooJaExiste(f"Ja existe um voo com o numero {numero_voo}")
 
-        #nasce com a capacidade copiada da aeronave
-        voo = Voo(numero_voo=numero_voo,
+        aeronave = self.aeronave_repository.buscar(prefixo_aeronave)
+        if aeronave is None:
+            raise AeronaveNaoEncontrada(f"Aeronave {prefixo_aeronave} nao encontrada")
+
+        if not aeronave.esta_disponivel(hoje):
+            raise AeronaveIndisponivel(f"Aeronave {prefixo_aeronave} esta indisponivel")
+
+        voo = Voo(
+            numero_voo=numero_voo,
             trecho=Trecho(origem, destino),
             aeronave_id=prefixo_aeronave,
             capacidade_assentos=aeronave.capacidade,
