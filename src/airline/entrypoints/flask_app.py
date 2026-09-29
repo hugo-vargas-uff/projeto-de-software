@@ -8,6 +8,11 @@ from airline.adapters.repository import SqlAlchemyTripulanteRepository, SqlAlche
 from airline.service_layer.services import TripulanteService, EscalaService
 from airline.domain.model import CargoTripulante, ErroRegraTripulacao
 
+from datetime import date
+from airline.adapters.repository import SqlAlchemyVooRepository, SqlAlchemyAeronaveRepository
+from airline.service_layer.services import VooService
+from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel
+
 app = Flask(__name__)
 
 engine = create_engine("sqlite:///airline.db", connect_args={"check_same_thread": False})
@@ -92,6 +97,59 @@ def consultar_escala(voo_id):
         "voo_id": escala.voo_id,
         "tripulantes_ids": [str(t_id) for t_id in escala.tripulantes_ids]
     }), 200
+
+
+# voo
+def montar_voo_service(session):
+    #liga as pecas reais: repositorios SQLAlchemy usando a mesma sessao que o servico vai confirmar
+    return VooService(
+        SqlAlchemyVooRepository(session),
+        SqlAlchemyAeronaveRepository(session),
+        session,
+    )
+
+
+@app.route("/voos", methods=["POST"])
+def agendar_voo():
+    dados = request.get_json()
+    session = SessionFactory()
+    try:
+        numero_voo = montar_voo_service(session).agendar_voo(
+            numero_voo=dados["numero_voo"],
+            origem=dados["origem"],
+            destino=dados["destino"],
+            prefixo_aeronave=dados["aeronave"],
+            hoje=date.today(),
+        )
+    except AeronaveNaoEncontrada as erro:
+        return {"mensagem": str(erro)}, 404
+    except (VooJaExiste, AeronaveIndisponivel) as erro:
+        return {"mensagem": str(erro)}, 400
+    finally:
+        session.close()  #roda sempre, com ou sem erro
+
+    return {"numero_voo": numero_voo}, 201
+
+
+@app.route("/voos/<numero_voo>", methods=["GET"])
+def consultar_voo(numero_voo):
+    session = SessionFactory()
+    try:
+        voo = montar_voo_service(session).consultar_voo(numero_voo)
+    except VooNaoEncontrado as erro:
+        return {"mensagem": str(erro)}, 404
+    finally:
+        session.close()
+
+    #a rota so traduz o Voo para um dicionario, que o Flask devolve como JSON
+    return {
+        "numero_voo": voo.numero_voo,
+        "origem": voo.trecho.origem,
+        "destino": voo.trecho.destino,
+        "aeronave": voo.aeronave_id,
+        "assentos_disponiveis": voo.assentos_disponiveis,
+        "status": voo.status.value,
+    }, 200
 
 
 if __name__ == "__main__":
