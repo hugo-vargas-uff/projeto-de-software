@@ -322,6 +322,19 @@ def realizar_voo(numero_voo):
 
     return {"numero_voo": numero_voo, "status": status}, 200
 
+@app.route("/voos/<numero_voo>/assentos", methods=["POST"])
+def alocar_assento(numero_voo):
+    session = SessionFactory()
+    try:
+        assentos = montar_voo_service(session).alocar_assento(numero_voo)
+    except VooNaoEncontrado as erro:
+        return {"mensagem": str(erro)}, 404
+    except ErroRegraVoo as erro:  #voo lotado ou nao agendado
+        return {"mensagem": str(erro)}, 400
+    finally:
+        session.close()
+
+    return {"numero_voo": numero_voo, "assentos_disponiveis": assentos}, 200
 
 @app.post("/passageiros")
 def criar_passageiro():
