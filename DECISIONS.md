@@ -379,3 +379,128 @@ Nos testes ponta a ponta (`tests/e2e/test_api.py`), utilizei a fixture `client` 
 ### 5. Uso de IA
 
 Utilizei IA para revisar as boas práticas de estrutura de fixtures com pytest para o test_client do Flask e para consultar o padrão do Apêndice B do livro no desacoplamento entre entrypoints e service layer. Todo o código do projeto foi implementado e testado por mim.
+
+
+# Agregado Despacho — Vinicius Duarte
+
+## Checkpoint 1 — Domínio do Despacho
+Neste checkpoint implementei o domínio `Despacho`. Antes de implementar a entidade, criei os testes unitários cobrindo criação, invariantes e regras de negócio no estilo TDD.
+
+### 2. Arquivos e commits
+
+- src/airline/domain/model.py
+- tests/unit/domain/test_despacho.py
+
+- cb5c9c5754e0198bba313553cb3e0e08409a6c53 — 28/09 — test: adiciona testes de id, voo_id, limite de carga e restaurar do despacho
+- 18d4c48a1003ee222d28add484436ed416fa688f — 28/09 — feat: adiciona id, voo_id, peso_disponivel e restaurar no despacho
+
+### 3. Decisão: Despacho é entidade e Volume é objeto de valor
+
+2026-09-29
+
+O Despacho tem id (uuid4) e muda de estado quando recebe volumes, então é entidade. Igualdade e hash usam o id, como no Tripulante e na Escala. O Volume só tem peso e não tem identidade: dois volumes de 150 kg são iguais. Por isso ele continua como dataclass frozen.
+
+### 3. Decisão: Despacho referencia o Voo só pelo voo_id
+
+2026-09-29
+
+O Despacho guarda apenas o voo_id (o numero_voo, ex. "MV-3000"), não a instância do Voo. Voo e Despacho são agregados diferentes, e um não deve alterar o outro. Segui o mesmo formato de voo_id da Escala.
+
+### 3. Decisão: carga_maxima informada na criação do despacho
+
+2026-09-29
+
+Verifiquei se dava para pegar a carga máxima da Aeronave, mas o campo capacidade dela é número de assentos, não peso. Usar a aeronave exigiria criar um campo novo no agregado Aeronave e fazer o serviço passar por Voo e Aeronave. Por isso a carga_maxima é informada quando o despacho é aberto. Troquei a mensagem de erro de "carga maxima da aeronave" para "carga maxima do despacho".
+
+### 3. Decisão: peso_disponivel no domínio
+
+2026-09-29
+
+O cálculo carga_maxima - peso_total ficou num método do próprio Despacho. Assim o serviço só consulta e não faz conta de regra de negócio.
+
+### 3. Decisão: restaurar para reconstruir vindo do banco
+
+2026-09-29
+
+Criei restaurar(id, voo_id, carga_maxima, volumes), igual ao do Passageiro e da Tripulante. Ele recria o despacho com o id que já existe, sem gerar um uuid novo.
+
+## Checkpoint 2 — Repositório do Despacho
+
+### 1. O que eu fiz neste checkpoint
+
+Criei o contrato DespachoRepository em domain/repositories.py, com salvar, buscar_por_id e buscar_por_voo.
+
+### 2. Arquivos e commits
+
+- src/airline/domain/repositories.py
+
+- 42c16150731d7fa11c5c8631866851d846a81896 — 29/09 — feat: adiciona contrato DespachoRepository
+
+### 3. Decisão: contrato abstrato no domínio
+
+2026-09-29
+
+O DespachoRepository fica no domínio, como classe abstrata (ABC). O serviço depende só dele, então nos testes de serviço posso usar um fake com dicionário e na aplicação o repositório com SQLAlchemy.
+
+### 3. Decisão: buscar_por_voo devolve um único despacho
+
+2026-09-29
+
+Considerei que cada voo tem um despacho de carga, igual à Escala, que também é buscada pelo voo_id e devolve uma só. Se não existir, o método retorna None.
+
+
+### 3. Decisão: duas tabelas para Despacho e Volume
+
+2026-09-29
+
+Um despacho tem vários volumes, então usei a tabela despachos e a tabela filha despacho_volumes, ligadas por ForeignKey e relationship com cascade="all, delete-orphan", como na Aeronave/OrdemManutencao e na Escala. O volume não existe fora do despacho. O id da tabela de volumes é só técnico (Integer autoincrement): no domínio o Volume continua sem identidade, e no to_domain eu recrio Volume(peso=...).
+
+### 3. Decisão: to_domain usa restaurar
+
+2026-09-29
+
+Na leitura, o DespachoModel monta o despacho com Despacho.restaurar(...), passando o id salvo, em vez de chamar adicionar_volume volume a volume. Os dados do banco já passaram pela regra de carga quando foram salvos.
+
+### 3. Decisão: salvar faz insert ou update
+
+2026-09-29
+
+Segui o salvar() que o Verdan fez no Voo e o Filipe na Escala: primeiro consulto o despacho pelo id; se não existir, insiro; se existir, atualizo. Sem isso, adicionar um volume num despacho já salvo daria erro de chave primária duplicada. O commit fica dentro do salvar, como nos outros repositórios.
+
+### 3. Decisão: no update os volumes são apagados e gravados de novo
+
+2026-09-29
+
+Como o Volume não tem identidade, não dá para saber qual linha do banco corresponde a qual volume. No update eu limpo a lista de volumes do model e recrio a partir do domínio; o cascade delete-orphan apaga as linhas antigas.
+
+### 3. Decisão: teste de integração com SQL puro
+
+2026-09-29
+
+Nos testes de integração confiro o banco com text() e insiro dados com INSERT direto, sem usar o próprio repositório para validar ele mesmo, seguindo o que o Verdan fez nos testes do Voo. Também testei que salvar um despacho existente não duplica o despacho nem os volumes.
+
+
+### 3. Decisão: casos de uso do DespachoService
+
+2026-09-29
+
+Criei o DespachoService com abrir_despacho, adicionar_volume, consultar_despacho e consultar_peso_disponivel. O serviço só busca no repositório, chama o domínio e salva. A regra do peso fica no Despacho.adicionar_volume e o cálculo do peso livre no Despacho.peso_disponivel.
+
+### 3. Decisão: um despacho por voo
+
+2026-09-29
+
+O abrir_despacho recusa um segundo despacho para o mesmo voo com ErroRegraDespacho. Fiz a verificação no serviço consultando buscar_por_voo, do mesmo jeito que o criar_passageiro confere se o CPF já existe antes de criar.
+
+### 3. Decisão: DespachoNaoEncontrado em vez de retornar None
+
+2026-09-29
+
+Quando o despacho não existe, o serviço lança DespachoNaoEncontrado (em domain/exception.py, como o PassageiroNaoEncontrado), em vez de retornar None. Assim a API consegue transformar isso em 404 e o volume não é adicionado em algo que não existe.
+
+### 3. Decisão: fake repository no próprio arquivo de teste
+
+2026-09-29
+
+O FakeDespachoRepository guarda os despachos num dicionário pelo id e fica dentro do test_despacho_service.py, como o FakeAeronaveRepository. Assim os testes do serviço rodam sem banco.
+
