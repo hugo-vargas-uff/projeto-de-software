@@ -209,3 +209,40 @@ class SqlAlchemyEscalaRepository(EscalaRepository):
             return None
         return model.to_domain()
 
+
+# --- Despacho
+
+from airline.domain.model import Despacho
+from airline.domain.repositories import DespachoRepository
+from airline.adapters.orm import DespachoModel, VolumeDespachoModel
+
+
+class SqlAlchemyDespachoRepository(DespachoRepository):
+
+    def __init__(self, session):
+        self.session = session
+
+    def salvar(self, despacho: Despacho) -> None:
+        model = self.session.query(DespachoModel).filter_by(id=str(despacho.id)).first()
+        if model is None:
+            model = DespachoModel.from_domain(despacho)
+            self.session.add(model)
+        else:
+            model.voo_id = despacho.voo_id
+            model.carga_maxima = despacho.carga_maxima
+            model.volumes.clear()
+            for volume in despacho.volumes:
+                model.volumes.append(VolumeDespachoModel(peso=volume.peso))
+        self.session.commit()
+
+    def buscar_por_id(self, despacho_id):
+        model = self.session.query(DespachoModel).filter_by(id=str(despacho_id)).first()
+        if model is None:
+            return None
+        return model.to_domain()
+
+    def buscar_por_voo(self, voo_id: str):
+        model = self.session.query(DespachoModel).filter_by(voo_id=str(voo_id)).first()
+        if model is None:
+            return None
+        return model.to_domain()
