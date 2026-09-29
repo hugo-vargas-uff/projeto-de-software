@@ -15,7 +15,9 @@ from airline.domain.repositories import (
     EscalaRepository
 )
 from airline.domain.exception import CpfJaCadastradoException, PassageiroNaoEncontrado
-
+from airline.domain.model import Voo, Trecho
+from airline.domain.repositories import VooRepository
+from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel
 
 class ReservaService:
 
@@ -186,3 +188,59 @@ class DespachoService:
     def consultar_peso_disponivel(self, despacho_id):
         despacho = self.consultar_despacho(despacho_id)
         return despacho.peso_disponivel()
+
+
+# --- Serviço Voo
+
+class VooService:
+
+    def __init__(self, voo_repository: VooRepository, aeronave_repository: AeronaveRepository, session):
+        self.voo_repository = voo_repository
+        self.aeronave_repository = aeronave_repository
+        self.session = session
+
+    def agendar_voo(self, numero_voo, origem, destino, prefixo_aeronave, hoje):
+        if self.voo_repository.buscar(numero_voo) is not None:
+            raise VooJaExiste(f"Ja existe um voo com o numero {numero_voo}")
+
+        aeronave = self.aeronave_repository.buscar(prefixo_aeronave)
+        if aeronave is None:
+            raise AeronaveNaoEncontrada(f"Aeronave {prefixo_aeronave} nao encontrada")
+
+        if not aeronave.esta_disponivel(hoje):
+            raise AeronaveIndisponivel(f"Aeronave {prefixo_aeronave} esta indisponivel")
+
+        voo = Voo(
+            numero_voo=numero_voo,
+            trecho=Trecho(origem, destino),
+            aeronave_id=prefixo_aeronave,
+            capacidade_assentos=aeronave.capacidade,
+        )
+
+        self.voo_repository.salvar(voo)
+        self.session.commit()
+        return voo.numero_voo
+
+    def cancelar_voo(self, numero_voo):
+        voo = self._buscar_voo(numero_voo)
+        voo.cancelar()  #se o voo ja foi realizado ou cancelado, Voo lanca ErroRegraVoo
+        self.voo_repository.salvar(voo)
+        self.session.commit()
+        return voo.status.value
+
+    def _buscar_voo(self, numero_voo):
+        #busca usada por varios casos de uso, se nao achar, avisa com um erro claro
+        voo = self.voo_repository.buscar(numero_voo)
+        if voo is None:
+            raise VooNaoEncontrado(f"Voo {numero_voo} nao encontrado")
+        return voo
+
+    def realizar_voo(self, numero_voo):
+        voo = self._buscar_voo(numero_voo)
+        voo.realizar()  #so passa se o voo estiver agendado
+        self.voo_repository.salvar(voo)
+        self.session.commit()
+        return voo.status.value
+
+    def consultar_voo(self, numero_voo):
+        return self._buscar_voo(numero_voo)
