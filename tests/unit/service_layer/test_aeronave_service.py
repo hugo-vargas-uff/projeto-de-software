@@ -1,6 +1,8 @@
 from datetime import date
-from airline.domain.model import Aeronave
+from airline.domain.model import Aeronave, StatusOrdemManutencao
 from airline.domain.repositories import AeronaveRepository
+from airline.service_layer.services import AeronaveService
+
 
 
 class FakeAeronaveRepository(AeronaveRepository):
@@ -39,3 +41,88 @@ def test_buscar_aeronave_inexistente_retorna_none():
     encontrada = repositorio.buscar("PT-XXX")
 
     assert encontrada is None
+
+
+
+
+
+def test_cadastrar_aeronave():
+    repo = FakeAeronaveRepository()
+    service = AeronaveService(repo)
+
+    aeronave = service.cadastrar_aeronave(
+        prefixo="PT-MVA",
+        modelo="Boeing 737",
+        capacidade=180,
+        validade_vistoria=date(2026, 12, 31)
+    )
+
+    encontrada = repo.buscar("PT-MVA")
+
+    assert encontrada == aeronave
+    assert encontrada.modelo == "Boeing 737"
+
+
+def test_abrir_ordem_manutencao():
+    repo = FakeAeronaveRepository()
+    service = AeronaveService(repo)
+
+    service.cadastrar_aeronave(
+        prefixo="PT-MVA",
+        modelo="Boeing 737",
+        capacidade=180,
+        validade_vistoria=date(2026, 12, 31)
+    )
+
+    ordem = service.abrir_ordem_manutencao(
+        "PT-MVA",
+        "Troca de oleo"
+    )
+
+    assert ordem.status == StatusOrdemManutencao.PENDENTE
+
+    aeronave = repo.buscar("PT-MVA")
+    assert len(aeronave.ordens_manutencao) == 1
+
+
+def test_concluir_ordem_manutencao():
+    repo = FakeAeronaveRepository()
+    service = AeronaveService(repo)
+
+    service.cadastrar_aeronave(
+        prefixo="PT-MVA",
+        modelo="Boeing 737",
+        capacidade=180,
+        validade_vistoria=date(2026, 12, 31)
+    )
+
+    service.abrir_ordem_manutencao(
+        "PT-MVA",
+        "Troca de oleo"
+    )
+
+    ordem = service.concluir_ordem_manutencao(
+        "PT-MVA",
+        "Troca de oleo"
+    )
+
+    assert ordem.status == StatusOrdemManutencao.CONCLUIDA
+
+
+def test_consultar_disponibilidade():
+    repo = FakeAeronaveRepository()
+    service = AeronaveService(repo)
+
+    service.cadastrar_aeronave(
+        prefixo="PT-MVA",
+        modelo="Boeing 737",
+        capacidade=180,
+        validade_vistoria=date(2026, 12, 31)
+    )
+
+    disponivel = service.consultar_disponibilidade(
+        "PT-MVA",
+        date(2026, 9, 28)
+    )
+
+    assert disponivel is True
