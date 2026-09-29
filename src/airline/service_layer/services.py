@@ -1,5 +1,5 @@
-from airline.domain.model import Reserva, Passageiro
-from airline.domain.repositories import ReservaRepository, PassageiroRepository
+from airline.domain.model import Reserva, Passageiro, Aeronave
+from airline.domain.repositories import ReservaRepository, PassageiroRepository, AeronaveRepository
 from airline.domain.exception import CpfJaCadastradoException, PassageiroNaoEncontrado
 
 class ReservaService:
@@ -43,5 +43,75 @@ class PassageiroService:
 
         return passageiro
 
+
     def buscar(self, cpf):
         return self.passageiro_repository.buscar_por_cpf(cpf)
+
+
+#---aeronave
+
+class AeronaveService:
+
+    def __init__(self, aeronave_repository: AeronaveRepository):
+        self.aeronave_repository = aeronave_repository
+
+    def cadastrar_aeronave(
+        self,
+        prefixo,
+        modelo,
+        capacidade,
+        validade_vistoria
+    ):
+        aeronave = Aeronave(
+            prefixo=prefixo,
+            modelo=modelo,
+            capacidade=capacidade,
+            validade_vistoria=validade_vistoria
+        )
+
+        self.aeronave_repository.salvar(aeronave)
+
+        return aeronave
+
+    def abrir_ordem_manutencao(self, prefixo, descricao):
+        aeronave = self.aeronave_repository.buscar(prefixo)
+
+        if aeronave is None:
+            return None
+
+        ordem = aeronave.abrir_ordem_manutencao(descricao)
+
+        self.aeronave_repository.salvar(aeronave)
+
+        return ordem
+
+    def concluir_ordem_manutencao(self, prefixo, descricao):
+        aeronave = self.aeronave_repository.buscar(prefixo)
+
+        if aeronave is None:
+            return None
+
+        ordem = next(
+            (
+                ordem
+                for ordem in aeronave.ordens_manutencao
+                if ordem.descricao == descricao
+            ),
+            None
+        )
+
+        if ordem is None:
+            return None
+
+        aeronave.concluir_ordem_manutencao(ordem)
+        self.aeronave_repository.salvar(aeronave)
+
+        return ordem
+
+    def consultar_disponibilidade(self, prefixo, hoje):
+        aeronave = self.aeronave_repository.buscar(prefixo)
+
+        if aeronave is None:
+            return None
+
+        return aeronave.esta_disponivel(hoje)
