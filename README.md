@@ -31,6 +31,5 @@ A divisão começou com 4 agregados e foi ajustada para 7 na Semana 3.
 
 ```bash
 pip install -r requirements.txt
-cd tests
-python -m pytest -v
+python -m pytest -v tests
 ```
