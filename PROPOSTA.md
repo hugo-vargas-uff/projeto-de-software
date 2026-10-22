@@ -40,3 +40,22 @@ O domínio tem 10 entidades de negócio, organizadas em 4 agregados.
 - Invariante de despacho: o peso total dos volumes despachados não pode exceder
   a carga máxima da aeronave.
 
+
+## Atualização da Fase  1, Semana 3: divisão em 7 agregados
+
+Depois do Checkpoint 1 da Fase 1, o grupo refinou a divisão de 4 para 7 agregados. As
+entidades continuam as mesmas. O que mudou foi quais delas são raiz de agregado.
+
+| Antes (Semana 1) | Agora (Semana 3) | Responsável |
+|---|---|---|
+| Voo (Voo, Trecho) | Voo | Matheus Verdan |
+| Reserva (Reserva, Passageiro) | Reserva e Passageiro, separados | Hugo Vargas |
+| Tripulação (Escala, Tripulante) | Escala e Tripulante, separados | Felipe Moreira |
+| Aeronave (Aeronave, OrdemManutencao, Despacho, Volume) | Aeronave, com OrdemManutencao | Matheus Andrade |
+| | Despacho, com Volume | Vinicius Duarte |
+
+A regra de lotação também mudou de lugar, ela saiu de Reserva e passou para Voo,
+porque só o Voo sabe quantos assentos ainda restam.
+
+As justificativas estão no DECISIONS.md e nos ADRs em `docs/adr/`.
+
