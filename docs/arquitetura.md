@@ -3,10 +3,10 @@
 ## 1. Escopo
 
 ## 2. Requisitos arquiteturais
+
 ### 2.1 Atributos de qualidade e cenários
 
-Em ordem de prioridade, com os nomes da ISO/IEC 25010: **corretude das regras de negócio** (adequação funcional),  
-**modificabilidade** e **testabilidade** (as duas de manutenibilidade).
+Em ordem de prioridade, com os nomes da ISO/IEC 25010: **corretude das regras de negócio** (adequação funcional), **modificabilidade** e **testabilidade** (as duas de manutenibilidade).
 
 Ficaram de fora os atributos que hoje não influenciam a estrutura do sistema. Desempenho e disponibilidade não têm nenhuma meta definida, como número de acessos ou horário de funcionamento. Segurança também não entrou, porque nenhum requisito pede login ou controle de acesso. Usabilidade, que a norma chama de capacidade de interação, não se aplica, porque o sistema não tem telas, só a API.
 
@@ -22,6 +22,45 @@ Um erro aqui atrapalha a operação da companhia: vender um assento que não exi
 - **Medida da resposta:** zero assentos alocados além da capacidade.
 
 Como verificar: `test_erro_alocar_voolotado`, em `tests/unit/domain/test_voo.py`, e `test_alocar_assento_ate_lotar_pela_api`, em `tests/e2e/test_api_voo.py`.
+
+#### Cenário 2 - Modificabilidade
+
+O sistema já mudou bastante durante o desenvolvimento: começou com quatro agregados, passou para sete, e a regra de lotação saiu da Reserva e foi para o Voo. Uma mudança numa parte não deve obrigar a mexer nas outras.
+
+- **Fonte:** a equipe de desenvolvimento.
+- **Estímulo:** quer agendar voos por outra entrada além da API, como uma linha de comando ou a importação de um arquivo.
+- **Ambiente:** desenvolvimento, com o sistema já em uso pela API.
+- **Artefato:** casos de uso do Voo, no `VooService`.
+- **Resposta:** basta escrever o código da nova entrada, que chama `VooService.agendar_voo`, sem reescrever nenhuma regra.
+- **Medida da resposta:** zero arquivos alterados em `src/airline/domain/` e `src/airline/service_layer/`, apenas arquivos novos em `src/airline/entrypoints/`.
+
+Como verificar: os testes de `tests/unit/service_layer/test_voo_service.py` já chamam o `VooService` sem passar pelo Flask, como se fossem uma segunda entrada.
+
+#### Cenário 3 - Testabilidade
+
+Quem altera uma regra precisa saber na hora se quebrou alguma coisa, e isso só funciona se os testes forem rápidos e não dependerem de banco.
+
+- **Fonte:** um desenvolvedor.
+- **Estímulo:** altera uma regra de domínio ou um caso de uso.
+- **Ambiente:** máquina local, sem banco de dados e sem servidor.
+- **Artefato:** camadas `domain/` e `service_layer/`.
+- **Resposta:** os testes unitários conferem a mudança usando repositórios falsos (`FakeVooRepository`) e uma sessão falsa (`FakeSession`) no lugar do banco.
+- **Medida da resposta:** todos os testes unitários rodam em menos de 1 segundo. Hoje são 81 testes em 0,06 s (`pytest tests/unit`).
+
+### 2.2 Restrições
+
+Como é um trabalho de disciplina, várias restrições vêm do próprio curso:
+
+- A stack é obrigatória: Python 3, pytest, SQLAlchemy e Flask ou FastAPI. O grupo escolheu Flask, com um banco SQLite num único arquivo.
+- As pastas do código (`domain/`, `service_layer/`, `adapters/` e `entrypoints/`) seguem o modelo do Apêndice B do livro-texto.
+- São cinco pessoas trabalhando ao mesmo tempo no mesmo repositório, cada uma responsável por um ou dois agregados.
+
+### 2.3 Objetivos da arquitetura
+
+- Manter cada regra de negócio dentro do agregado a que ela pertence.
+- Permitir que cada integrante trabalhe no próprio agregado em paralelo.
+- Testar as regras sem banco nem servidor.
+- Manter o domínio livre de Flask e SQLAlchemy.
 
 ## 3. Arquitetura atual
 
