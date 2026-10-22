@@ -148,3 +148,5 @@ flowchart TB
 ## 5. Alternativa
 
 ## 6. Evidências
+
+- **Um caso de uso novo atravessa as camadas, mas não mexe na persistência.** O alocar assento alterou seis arquivos em quatro commits, com 74 linhas acrescentadas: model.py e test_voo.py no domínio, services.py e test_voo_service.py no serviço, test_api_voo.py no teste ponta a ponta e flask_app.py na rota. Nenhum arquivo de adapters/ mudou, porque o repositório do Voo já gravava todo o estado do voo, inclusive os assentos disponíveis. Fonte: git show --stat 78c3ae0 3bbb673 9654350 f5a33e8.
