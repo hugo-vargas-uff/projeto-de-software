@@ -656,3 +656,27 @@ O FakeDespachoRepository guarda os despachos num dicionário pelo id e fica dent
 - **Uso de IA generativa:**
   - Utilizei assistente de IA generativa para auxiliar na formatação e estrutura do ADR em conformidade com as diretrizes do edital da Fase 2, na revisão da clareza dos argumentos de trade-offs arquiteturais e no suporte a comandos de terminal Git. Toda a lógica de domínio e decisões de arquitetura registradas representam fielmente a implementação real do repositório.
 
+
+### Vinicius Duarte (@DEVinicius-jpeg) — Agregado Despacho
+
+#### O que eu fiz
+
+- Escrevi o ADR 0005, que registra a decisão da Fase 1 de tirar o Despacho de dentro do agregado Aeronave (como estava na proposta, `4fe1bdd`) e transformá-lo num agregado próprio que referencia o voo pelo `voo_id`.
+- No ADR, listei as alternativas que considerei (Despacho dentro da Aeronave, dentro do Voo, carga máxima lida da Aeronave e Volume com identidade), as consequências da decisão e as limitações que ela deixou, com os hashes dos meus commits da Fase 1 como evidência.
+- Escrevi esta subseção do autorrelato.
+
+Arquivos: `docs/adr/0005-despacho-como-agregado-proprio.md`, `DECISIONS.md`
+
+Commits:
+- `b6677ba` — 21/10 — docs: adiciona ADR 0005 do Despacho como agregado proprio
+- `<hash>` — 22/10 — docs: adiciona autorrelato do checkpoint 1 da Fase 2
+
+#### Decisão: no ADR, registrar a separação do Despacho, e não a regra de carga
+
+2026-10-21
+
+Considerei fazer o ADR sobre a invariante de carga máxima, mas ela é só uma consequência. A decisão arquitetural de verdade foi mudar a fronteira do agregado em relação à proposta (Despacho fora da Aeronave), e é ela que explica as limitações do agregado hoje: o despacho não confere se o voo existe, a carga máxima não vem da aeronave e a regra de um despacho por voo só é garantida no serviço.
+
+#### Uso de IA
+
+Usei o Claude Code (assistente de IA da Anthropic, dentro do VS Code) neste checkpoint. Passei o enunciado da Fase 2 e pedi ajuda com a entrega. A IA leu o código e o histórico do repositório, levantou os hashes e as informações citadas no ADR e redigiu a primeira versão do ADR 0005 e desta subseção. Depois eu revisei os textos, conferi os hashes e ajustei o que não correspondia ao que eu tinha decidido na Fase 1. A responsabilidade pelo conteúdo é minha.
