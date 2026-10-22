@@ -629,3 +629,30 @@ Quando o despacho não existe, o serviço lança DespachoNaoEncontrado (em domai
 
 O FakeDespachoRepository guarda os despachos num dicionário pelo id e fica dentro do test_despacho_service.py, como o FakeAeronaveRepository. Assim os testes do serviço rodam sem banco.
 
+
+# PARTE 2 — Arquitetura, Refatoração e Padrões (Fase 2)
+
+## Checkpoint 1 — Arquitetura e Decisões de Projeto
+
+### Filipe Moreira (@Filipe-Moreira-sb) — Agregados Tripulante e Escala
+
+- **O que fiz neste checkpoint:**
+  - Registrei o Architecture Decision Record `docs/adr/0006-escala-referencia-tripulantes-por-id.md`, documentando a decisão arquitetural da modelagem da `Escala` como agregado independente, referenciando `Tripulante` e `Voo` exclusivamente por identificadores primitivos.
+  - Ajustei a numeração sequencial do ADR para 0006, prevenindo conflito de nomenclatura no repositório.
+  - Realizei o mapeamento de dependências e análise dos trade-offs da orquestração na camada de serviço para alimentar a documentação de arquitetura.
+
+- **Arquivos modificados:**
+  - `docs/adr/0006-escala-referencia-tripulantes-por-id.md`
+  - `DECISIONS.md`
+
+- **Commits do autor:**
+  - `3c1debe` — docs(adr): adiciona ADR 0005 sobre referencia por ID na Escala
+  - `26786da` — docs(adr): renomeia ADR de Escala para 0006 evitando conflito de sequencial
+
+- **Decisão de projeto tomada:**
+  - *Decisão:* Manter a raiz do agregado `Escala` armazenando apenas coleções de identificadores primitivos (`tripulantes_ids`) e delegar à camada de serviço (`TripulacaoService.escalar_tripulante`) a orquestração com o agregado `Tripulante`.
+  - *Justificativa:* Isola as fronteiras transacionais de cada agregado, evitando locks desnecessários de banco de dados e acoplamento entre os ciclos de vida de voos, escalas e tripulação.
+
+- **Uso de IA generativa:**
+  - Utilizei assistente de IA generativa para auxiliar na formatação e estrutura do ADR em conformidade com as diretrizes do edital da Fase 2, na revisão da clareza dos argumentos de trade-offs arquiteturais e no suporte a comandos de terminal Git. Toda a lógica de domínio e decisões de arquitetura registradas representam fielmente a implementação real do repositório.
+
