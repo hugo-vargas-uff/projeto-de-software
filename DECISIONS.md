@@ -669,7 +669,7 @@ Arquivos: `docs/adr/0005-despacho-como-agregado-proprio.md`, `DECISIONS.md`
 
 Commits:
 - `b6677ba` — 21/10 — docs: adiciona ADR 0005 do Despacho como agregado proprio
-- `<hash>` — 22/10 — docs: adiciona autorrelato do checkpoint 1 da Fase 2
+- `26065e4` — 22/10 — docs: adiciona autorrelato do checkpoint 1 da Fase 2
 
 #### Decisão: no ADR, registrar a separação do Despacho, e não a regra de carga
 
