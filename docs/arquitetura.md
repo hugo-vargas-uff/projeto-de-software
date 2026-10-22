@@ -3,6 +3,25 @@
 ## 1. Escopo
 
 ## 2. Requisitos arquiteturais
+### 2.1 Atributos de qualidade e cenários
+
+Em ordem de prioridade, com os nomes da ISO/IEC 25010: **corretude das regras de negócio** (adequação funcional),  
+**modificabilidade** e **testabilidade** (as duas de manutenibilidade).
+
+Ficaram de fora os atributos que hoje não influenciam a estrutura do sistema. Desempenho e disponibilidade não têm nenhuma meta definida, como número de acessos ou horário de funcionamento. Segurança também não entrou, porque nenhum requisito pede login ou controle de acesso. Usabilidade, que a norma chama de capacidade de interação, não se aplica, porque o sistema não tem telas, só a API.
+
+#### Cenário 1 - Corretude das regras de negócio
+
+Um erro aqui atrapalha a operação da companhia: vender um assento que não existe, agendar voo com avião em manutenção, escalar tripulante acima do teto de horas ou despachar bagagem acima da carga máxima.
+
+- **Fonte:** um operador usando a API.
+- **Estímulo:** pede para alocar um assento num voo (`POST /voos/<numero>/assentos`).
+- **Ambiente:** operação normal, com um pedido de cada vez, num voo agendado com um único assento livre.
+- **Artefato:** agregado Voo, no método `Voo.alocar_assento()`, chamado por `VooService.alocar_assento()`.
+- **Resposta:** o sistema aloca o último assento e recusa os pedidos seguintes com erro 400 e uma mensagem.
+- **Medida da resposta:** zero assentos alocados além da capacidade.
+
+Como verificar: `test_erro_alocar_voolotado`, em `tests/unit/domain/test_voo.py`, e `test_alocar_assento_ate_lotar_pela_api`, em `tests/e2e/test_api_voo.py`.
 
 ## 3. Arquitetura atual
 
