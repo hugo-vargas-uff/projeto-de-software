@@ -711,3 +711,34 @@ Usei o Claude Code no VS Code. Ele me ajudou:
 - Ajudando no texto da primeira versão desta subseção.
 
 Revisei os textos, mantive só o que corresponde ao que decidi e implementei, e a responsabilidade pelo conteúdo é minha.
+
+### Matheus Verdan (@verdanmatheus) - Agregado Voo
+
+#### O que eu fiz
+
+- Escrevi o ADR 0003, que registra a decisão da Fase 1 de o Voo guardar só o prefixo da aeronave e copiar a capacidade dela no agendamento.
+- Criei o esqueleto do `docs/arquitetura.md` e escrevi a seção 2, com os três atributos de qualidade em ordem de prioridade, um cenário de seis partes para cada um, as restrições e os objetivos. Também escrevi a evidência do caso de uso alocar assento na seção 6.
+- Fiz três das correções pedidas na avaliação da Fase 1: o README agora roda os testes a partir da raiz, o `tests/airline.db` saiu do versionamento e a PROPOSTA ganhou um adendo com os sete agregados.
+
+Arquivos: docs/adr/0003-voo-referencia-aeronave-pelo-prefixo.md, docs/arquitetura.md, README.md, PROPOSTA.md, tests/airline.db, DECISIONS.md
+
+Commits:
+- f26a5f6 - 21/10 - docs: voo referencia aeronave pelo prefixo
+- ffe41f6 - 21/10 - esqueleto da arquitetura
+- 129ea38 - 22/10 - docs: atributos priorizados e cenario de corretude
+- 0fb2c29 - 22/10 - docs: add demais cenarios, restricoes e objetivos
+- 8c92b36 - 22/10 - docs: evidencia do caso de uso alocar assento
+
+Correções pedidas na avaliação da Fase 1:
+- 0ad8eb8 - 22/10 - att no readme, roda os testes a partir da raiz
+- ddf2adb - 22/10 - chore: tira o banco de teste do versionamento
+- 5439476 - 22/10 - docs: atualiza proposta para os sete agregados
+
+#### Modificabilidade medida por uma nova entrada, e não pela troca de banco
+2026-10-22
+
+No cenário de modificabilidade, o exemplo mais comum seria trocar o banco de SQLite para PostgreSQL, mas com o SQLAlchemy essa troca é quase só mudar o endereço do banco em qualquer arquitetura, então o cenário não mostraria diferença entre a nossa e uma alternativa como Flask com Active Record. Por isso usei uma nova forma de entrada, como uma linha de comando, que mostra melhor o que a camada de serviço resolve: a nova entrada só precisa chamar o VooService.agendar_voo, que já busca a aeronave, confere se ela está disponível e copia a capacidade. Sem essa camada, esses passos ficariam dentro da rota do Flask e a nova entrada teria que repetir tudo.
+
+#### Uso de IA
+
+Usei o NotebookLM para resumir as aulas 1 e 2 e consultar o enunciado da Fase 2. Usei o Claude para medir evidências numa cópia do repositório, para organizar as ideias em rascunhos e para revisar os textos.
