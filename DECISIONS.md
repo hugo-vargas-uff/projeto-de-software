@@ -680,3 +680,34 @@ Considerei fazer o ADR sobre a invariante de carga máxima, mas ela é só uma c
 #### Uso de IA
 
 Usei o Claude Code (assistente de IA da Anthropic, dentro do VS Code) neste checkpoint. Passei o enunciado da Fase 2 e pedi ajuda com a entrega. A IA leu o código e o histórico do repositório, levantou os hashes e as informações citadas no ADR e redigiu a primeira versão do ADR 0005 e desta subseção. Depois eu revisei os textos, conferi os hashes e ajustei o que não correspondia ao que eu tinha decidido na Fase 1. A responsabilidade pelo conteúdo é minha.
+
+### Matheus Andrade (@MatheusFSD) — Agregado Aeronave
+
+#### O que eu fiz
+
+- Escrevi o ADR 0004, que registra a decisão da Fase 1 de manter a `OrdemManutencao` dentro do agregado Aeronave, com a disponibilidade calculada pela raiz em `esta_disponivel(hoje)` e as ordens salvas junto com a aeronave, em duas tabelas ligadas por `cascade`.
+- No `docs/arquitetura.md`, escrevi a seção 4 (impacto nos três atributos, três trade-offs e um risco), a seção 5 (Active Record como alternativa, com a tabela de comparação e a escolha do grupo) e duas das três evidências da seção 6.
+- Escrevi esta subseção do autorrelato.
+
+Arquivos: `docs/adr/0004-ordem-manutencao-dentro-do-agregado-aeronave.md`, `docs/arquitetura.md`, `DECISIONS.md`
+
+Commits:
+- `7648908` — 21/10 — docs: adiciona ADR da OrdemManutencao no agregado Aeronave
+- `e3cb946` — 22/10 — docs: adiciona trade-offs, alternativa e evidencias na arquitetura
+
+#### Decisão: usar como risco a diferença entre o repositório falso e o real
+
+2026-10-22
+
+Para a seção 4.3, escolhi um risco que aconteceu no meu próprio agregado, em vez de um risco genérico. O `FakeAeronaveRepository.salvar()` sobrescreve a aeronave no dicionário, enquanto o `SqlAlchemyAeronaveRepository.salvar()` sempre insere. Por isso os testes unitários de abrir e concluir ordem passam, mas o mesmo caso de uso falharia com o banco real, e é por esse motivo que as rotas de manutenção nunca foram expostas na API. Esse risco mostra o limite do cenário de testabilidade da seção 2: o fake deixa os testes rápidos, mas só é confiável se se comportar igual ao repositório real.
+
+#### Uso de IA
+
+Usei o Claude Code no VS Code. Ele me ajudou:
+
+- Ajudando no texto da primeira versão do ADR 0004 e conferindo se os hashes citados existiam no histórico;
+- medindo os dados das evidências: o tempo das suítes de teste, a contagem de linhas de `orm.py`, `repository.py` e `model.py`, e os arquivos alterados pelo commit `94d4a24`;
+- revisando as seções 4, 5 e 6 do `arquitetura.md`, apontando que a seção 5 precisava de uma tabela de comparação e reorganizando o layout dessa tabela;
+- Ajudando no texto da primeira versão desta subseção.
+
+Revisei os textos, mantive só o que corresponde ao que decidi e implementei, e a responsabilidade pelo conteúdo é minha.
