@@ -2,6 +2,8 @@
 
 ## 1. Escopo
 
+O Sistema de Operações de Companhia Aérea apoia o agendamento de voos, as reservas de passageiros, a escala de tripulação, o controle da frota, considerando vistoria e manutenção das aeronaves, e o despacho de bagagem. Seus usuários previstos são os operadores da companhia responsáveis por essas atividades, além de outros sistemas que possam consumir os endpoints disponíveis. A comunicação ocorre por uma API HTTP, sem interface gráfica. O escopo atual não inclui autenticação de usuários, controle de acesso ou processamento de pagamentos. Algumas operações de manutenção já existem no domínio e nos serviços, mas ainda não estão disponíveis pela API.
+
 ## 2. Requisitos arquiteturais
 
 ### 2.1 Atributos de qualidade e cenários
