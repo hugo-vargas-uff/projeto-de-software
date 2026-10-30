@@ -62,6 +62,16 @@ class Trecho:
     origem: str
     destino: str
 
+# mudancas de status que cada status permite
+TRANSICOES_VOO = {
+    StatusVoo.AGENDADO:{StatusVoo.CANCELADO, StatusVoo.REALIZADO},
+    StatusVoo.CANCELADO: set(),
+    StatusVoo.REALIZADO: set(),
+}
+
+# status em que o voo ainda aceita passageiro novo
+STATUS_QUE_ACEITAM_ASSENTO = {StatusVoo.AGENDADO}
+
 class Voo:
     def __init__(self, numero_voo: str, trecho: Trecho, aeronave_id: str, capacidade_assentos: int):
         self.numero_voo = numero_voo
@@ -71,25 +81,22 @@ class Voo:
         self.status = StatusVoo.AGENDADO
 
     def cancelar(self):
-        if self.status == StatusVoo.REALIZADO:
-            raise ErroRegraVoo("voo realizado, nao pode ser cancelado")
-        if self.status == StatusVoo.CANCELADO:
-            raise ErroRegraVoo("Voo ja estava cancelado")
-
-        self.status = StatusVoo.CANCELADO
+        self.mudar_status(StatusVoo.CANCELADO)
         
     def realizar(self):
-        if self.status != StatusVoo.AGENDADO:
-            raise ErroRegraVoo("So pode realizar voos que estao agendados")
-        self.status=StatusVoo.REALIZADO
+        self.mudar_status(StatusVoo.REALIZADO)
 
     def alocar_assento(self):
-        #so voo agendado aceita passageiro novo
-        if self.status != StatusVoo.AGENDADO:
-            raise ErroRegraVoo("So pode alocar assento em voo agendado")
+        if self.status not in STATUS_QUE_ACEITAM_ASSENTO:
+            raise ErroRegraVoo(f"voo {self.status.value.lower()} nao aceita assento novo")
         if self.assentos_disponiveis <= 0:
             raise ErroRegraVoo("lotado, sem assentos livres.")
         self.assentos_disponiveis -= 1
+
+    def mudar_status(self, novo_status):
+        if novo_status not in TRANSICOES_VOO[self.status]:
+            raise ErroRegraVoo(f"voo {self.status.value.lower()} nao pode passar para {novo_status.value.lower()}")
+        self.status = novo_status
 
 
 # Agregado Aeronave
