@@ -56,6 +56,21 @@ def test_erro_cancelar_um_voo_ja_realizado():
     with pytest.raises(ErroRegraVoo):
         decolado.cancelar()
 
+def test_erro_cancelar_um_voo_ja_cancelado():
+    rota = Trecho(origem="SP", destino="RJ")
+    voo = Voo(numero_voo="MV-302", trecho=rota, aeronave_id="A12", capacidade_assentos=10)
+    voo.cancelar()
+    #cancelar de novo tem que dar erro
+    with pytest.raises(ErroRegraVoo):
+        voo.cancelar()
+
+def test_erro_realizar_um_voo_ja_realizado():
+    rota = Trecho(origem="SP", destino="RJ")
+    voo = Voo(numero_voo="MV-303", trecho=rota, aeronave_id="A12", capacidade_assentos=10)
+    voo.realizar()
+    with pytest.raises(ErroRegraVoo):
+        voo.realizar()
+
 def test_alocar_assento_com_sucesso():
     rota=Trecho(origem="SP", destino="RJ")
     voo = Voo(numero_voo="MV-200", trecho=rota, aeronave_id="A12", capacidade_assentos=2)
