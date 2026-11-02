@@ -742,3 +742,31 @@ No cenário de modificabilidade, o exemplo mais comum seria trocar o banco de SQ
 #### Uso de IA
 
 Usei o NotebookLM para resumir as aulas 1 e 2 e consultar o enunciado da Fase 2. Usei o Claude para medir evidências numa cópia do repositório, para organizar as ideias em rascunhos e para revisar os textos.
+
+## Checkpoint 2 - Refatoração SOLID
+
+### Matheus Verdan (@verdanmatheus) - Agregado Voo
+
+#### O que eu fiz
+
+- Encontrei uma violação do princípio Aberto/Fechado no Voo, com as regras de status espalhadas em `if`s no `cancelar`, no `realizar` e no `alocar_assento`.
+- Acrescentei os dois testes que faltavam e depois troquei esses `if`s por uma tabela de transições.
+- Criei o docs/solid.md e escrevi a parte do Voo.
+
+Arquivos: docs/solid.md, src/airline/domain/model.py, tests/unit/domain/test_voo.py, DECISIONS.md
+
+Commits:
+- 90560b6 - 29/10 - test: trava as transicoes de status do voo
+- afe1aad - 29/10 - refactor: regras de status do voo numa tabela de transicoes
+- aed71d4 - 30/10 - docs: add solid
+- 15920f9 - 30/10 - docs: violacao aberto/fechado no Voo
+- 60ac4a5 - 31/10 - docs: refatoracao, testes e custo do voo
+
+#### Os testes vieram antes da refatoração
+2026-10-29
+
+Antes de mexer no código, escrevi os testes de cancelar um voo já cancelado e de realizar um voo já realizado, porque nenhum teste cobria esses casos. Sem eles, um erro na tabela poderia passar despercebido e eu não conseguiria mostrar que o comportamento continuou o mesmo.
+
+#### Uso de IA
+
+Usei o Claude para tirar dúvidas sobre SOLID, testar a refatoração numa cópia do repositório e discutir mudanças.
