@@ -33,11 +33,12 @@ A `OrdemManutencao` é uma entidade interna do agregado Aeronave, e a `Aeronave`
 - (+) O `VooService` só precisa perguntar `esta_disponivel` à aeronave. Ele não conhece as ordens nem as regras de vistoria.
 - (−) A `OrdemManutencao` não tem identidade própria no domínio. O `id` existe só no banco. Por isso, o `AeronaveService` localiza a ordem a concluir pela descrição, o que falha se houver duas ordens com o mesmo texto.
 - (−) O `salvar` do repositório sempre insere. Salvar de novo uma aeronave que já existe, depois de abrir ou concluir uma ordem, gera conflito de chave primária. Por isso as rotas de abrir e concluir ordem não foram expostas na API.
+  - **Atualização (03/11):** corrigido no commit `0353d3e`: o `salvar` passou a atualizar a aeronave quando ela já existe. Como a ordem não tem identidade, as ordens são regravadas a cada `salvar` (`clear()` mais o `delete-orphan`). As rotas continuam fora da API por causa da identidade da ordem.
 - (−) Toda leitura da aeronave carrega também todas as ordens dela, inclusive as antigas e concluídas.
 
 ## Riscos e evolução
 
-- Para expor as rotas de manutenção na API, a ordem precisa de um identificador no domínio, e o `salvar` precisa atualizar a aeronave em vez de sempre inserir (por exemplo, com `session.merge`).
+- Para expor as rotas de manutenção na API, a ordem precisa de um identificador no domínio, e o `salvar` precisa atualizar a aeronave em vez de sempre inserir (por exemplo, com `session.merge`). A parte do `salvar` foi resolvida em `0353d3e`; falta o identificador da ordem.
 - Se uma aeronave acumular muitas ordens ao longo dos anos, carregar todas a cada consulta de disponibilidade pode ficar lento. Uma saída seria consultar só as ordens pendentes.
 - Os voos já agendados não são avisados quando a aeronave entra em manutenção depois do agendamento. Esse risco também aparece no ADR 0003.
 
@@ -48,3 +49,5 @@ A `OrdemManutencao` é uma entidade interna do agregado Aeronave, e a `Aeronave`
 - `08a13bd` — feat: adiciona mapeamento ORM da Aeronave e OrdemManutencao
 - `05ca3a9` — feat: adiciona SqlAlchemyAeronaveRepository
 - `f9bc17b` — test: add teste de integracao do SqlAlchemyAeronaveRepository
+- `e98040c` — test: contrato do AeronaveRepository roda igual no fake e no SQLAlchemy
+- `0353d3e` — refactor: salvar da Aeronave atualiza em vez de inserir, igual ao repositorio falso

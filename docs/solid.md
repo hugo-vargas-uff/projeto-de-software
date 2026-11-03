@@ -74,6 +74,74 @@ Considerei criar uma classe por status, mas preferi a tabela porque os status do
 
 ## Aeronave, Matheus Andrade
 
+### Princípio violado: Substituição de Liskov (LSP)
+
+Código antes, dos commits `05ca3a9` (26/09) e `51ca19a` (26/09). O contrato `AeronaveRepository` tem duas implementações, e o `salvar` de cada uma faz uma coisa diferente:
+
+```python
+# adapters/repository.py, SqlAlchemyAeronaveRepository (05ca3a9)
+    def salvar(self, aeronave: Aeronave) -> None:
+        aeronave_model = AeronaveModel(
+            prefixo=aeronave.prefixo,
+            modelo=aeronave.modelo,
+            capacidade=aeronave.capacidade,
+            validade_vistoria=aeronave.validade_vistoria
+        )
+
+        for ordem in aeronave.ordens_manutencao:
+            ordem_model = OrdemManutencaoModel(
+                descricao=ordem.descricao,
+                status=ordem.status
+            )
+
+            aeronave_model.ordens_manutencao.append(ordem_model)
+
+        self.session.add(aeronave_model)
+        self.session.commit()
+```
+
+```python
+# tests/unit/service_layer/test_aeronave_service.py, FakeAeronaveRepository (51ca19a)
+    def salvar(self, aeronave):
+        self.aeronaves[aeronave.prefixo] = aeronave
+```
+
+### O problema
+
+O `AeronaveService` só conhece o contrato `AeronaveRepository` e parte do princípio de que dá para salvar a mesma aeronave mais de uma vez: o `abrir_ordem_manutencao` busca a aeronave, abre a ordem e salva de novo. O fake aceita isso, porque sobrescreve no dicionário. O repositório real não aceita, porque o `salvar` sempre insere, e falha com `IntegrityError` (`UNIQUE constraint failed: aeronaves.prefixo`). Trocar o fake pelo repositório real quebrava um código que só dependia do contrato, e é isso que o princípio de Liskov proíbe.
+
+Na prática, os testes do serviço passavam e o mesmo caso de uso falhava com o banco real. Foi por isso que as rotas de abrir e concluir ordem de manutenção nunca foram expostas na API (ADR 0004 e seção 4.3 do `arquitetura.md`). Os repositórios de Voo e de Despacho já atualizavam quando o registro existia, e o da Aeronave era o que destoava.
+
+### A refatoração
+
+No commit `0353d3e`, o `salvar` do `SqlAlchemyAeronaveRepository` passou a buscar a aeronave pelo prefixo. Se ela não existe, insere. Se existe, atualiza os campos e substitui as ordens de manutenção: faz o `clear()` e regrava as atuais, e o `delete-orphan` apaga as antigas, porque a ordem ainda não tem identidade no domínio. A conversão entre domínio e ORM saiu do repositório e foi para o `from_domain` e o `to_domain` dos models, como já estava no resto do grupo. O `to_domain` continua remontando as ordens pelos métodos da própria aeronave (ADR 0004).
+
+```python
+    def salvar(self, aeronave: Aeronave) -> None:
+        model = self.session.query(AeronaveModel).filter_by(prefixo=aeronave.prefixo).first()
+        if model is None:
+            model = AeronaveModel.from_domain(aeronave)
+            self.session.add(model)
+        else:
+            model.modelo = aeronave.modelo
+            model.capacidade = aeronave.capacidade
+            model.validade_vistoria = aeronave.validade_vistoria
+            model.ordens_manutencao.clear()
+            for ordem in aeronave.ordens_manutencao:
+                model.ordens_manutencao.append(OrdemManutencaoModel.from_domain(ordem))
+        self.session.commit()
+```
+
+Considerei fazer o contrário: deixar o fake recusar o `salvar` de uma aeronave que já existe, como o repositório real fazia. Descartei porque o contrato correto de `salvar` é persistir o estado atual, como fazem os repositórios de Voo e de Despacho, e porque o próprio `AeronaveService` precisa salvar uma aeronave existente para abrir uma ordem.
+
+### Testes
+
+Antes de mexer no código, escrevi um teste de contrato (`e98040c`, 02/11) que roda o mesmo cenário nas duas implementações, com uma fixture parametrizada (`fake` e `sqlalchemy`). São 4 cenários, então 8 execuções. Antes da refatoração, 6 passavam e 2 falhavam, as duas no SQLAlchemy e com `IntegrityError`: salvar uma aeronave que já existe e concluir uma ordem e salvar. Depois, as 8 passam, e a suíte inteira foi de 146 passando e 2 falhando para 148 passando. O commit da refatoração não alterou nenhum teste que já existia, e os e2e da API de aeronave continuaram passando.
+
+### Custo
+
+A conversão ganhou `from_domain` e `to_domain` em dois models, e o `orm.py` cresceu de 219 para 250 linhas. O repositório encolheu, então o saldo do commit foi de +9 linhas, mas o código de mapeamento agora está em dois lugares, e um campo novo na Aeronave exige mudar o `from_domain`, o `to_domain` e a parte de atualização do `salvar`. O `salvar` também ficou com dois caminhos, inserir e atualizar. Compensa porque os dois repositórios passam a obedecer ao mesmo contrato, o fake volta a ser confiável nos testes do serviço e as rotas de manutenção podem ser expostas na API sem outra mudança de persistência.
+
 ## Reserva e Passageiro, Hugo Vargas
 
 ### Princípio Violado: Princípio da Responsabilidade Única

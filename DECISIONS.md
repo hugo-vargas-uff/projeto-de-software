@@ -772,6 +772,31 @@ Antes de mexer no código, escrevi os testes de cancelar um voo já cancelado e 
 Usei o Claude para tirar dúvidas sobre SOLID, testar a refatoração numa cópia do repositório e discutir mudanças.
 
 
+### Matheus Andrade (@MatheusFSD) - Agregado Aeronave
+
+#### O que eu fiz
+
+- Encontrei uma violação do princípio de Substituição de Liskov no repositório da Aeronave: o repositório falso e o SQLAlchemy implementam o mesmo contrato, mas salvar uma aeronave que já existe funciona num e falha no outro, com `IntegrityError`.
+- Escrevi antes um teste de contrato que roda o mesmo cenário nas duas implementações e, depois, corrigi o `salvar` do SQLAlchemy para atualizar em vez de inserir.
+- Movi a conversão entre domínio e ORM para `from_domain` e `to_domain` nos models, como o resto do grupo.
+- Escrevi a minha parte do `docs/solid.md` e atualizei a seção 4.3 e as evidências do `docs/arquitetura.md` e o ADR 0004, que descreviam o defeito como aberto.
+
+Arquivos: `tests/integration/adapter/test_contrato_aeronave_repository.py`, `src/airline/adapters/orm.py`, `src/airline/adapters/repository.py`, `docs/solid.md`, `docs/arquitetura.md`, `docs/adr/0004-ordem-manutencao-dentro-do-agregado-aeronave.md`, `DECISIONS.md`
+
+Commits:
+- `e98040c` - 02/11 - test: contrato do AeronaveRepository roda igual no fake e no SQLAlchemy
+- `0353d3e` - 03/11 - refactor: salvar da Aeronave atualiza em vez de inserir, igual ao repositorio falso
+
+#### Decisão: substituir a lista de ordens em vez de dar identidade à OrdemManutencao
+2026-11-03
+
+Para o `salvar` atualizar uma aeronave que já existe, precisei decidir o que fazer com as ordens de manutenção. Dar um identificador à `OrdemManutencao` permitiria atualizar cada ordem, mas mexeria no domínio, no serviço, no ORM e em vários testes que já passavam. Preferi substituir a lista: o `salvar` apaga as ordens antigas, com o `delete-orphan`, e regrava as atuais. O custo é que as ordens são regravadas a cada `salvar` e a ordem continua sem identidade no domínio, o que fica registrado como evolução no ADR 0004.
+
+#### Uso de IA
+2026-11-03
+
+Usei o Claude Code para identificar a violação de Liskov, ajudar a escrever o teste de contrato e a refatoração do `salvar` e dos conversores `from_domain` e `to_domain`, levantar os números dos documentos e redigir a primeira versão da minha parte do `docs/solid.md`, desta subseção e das atualizações do `docs/arquitetura.md` e do ADR 0004. As escolhas de projeto foram minhas. A suíte ficou verde (148 testes) antes de subir. Revisei os textos e o código, e a responsabilidade pelo conteúdo é minha.
+
 ### Filipe Moreira (@Filipe-Moreira-sb) - Agregados Tripulante e Escala
 
 #### O que eu fiz
