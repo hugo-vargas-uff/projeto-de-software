@@ -770,3 +770,31 @@ Antes de mexer no código, escrevi os testes de cancelar um voo já cancelado e 
 #### Uso de IA
 
 Usei o Claude para tirar dúvidas sobre SOLID, testar a refatoração numa cópia do repositório e discutir mudanças.
+
+
+### Filipe Moreira (@Filipe-Moreira-sb) - Agregados Tripulante e Escala
+
+#### O que eu fiz
+
+- Identifiquei uma violação do Princípio da Responsabilidade Única (SRP) no agregado `Tripulante`, onde a entidade misturava o cadastro do profissional com o controle de limites regulamentares de jornada de voo.
+- Adicionei testes de travamento para a verificação de voo e limites de horas antes da refatoração.
+- Refatorei o modelo extraindo a classe/Objeto de Valor `ControleJornada`, preservando métodos e properties delegadas em `Tripulante` para manter total compatibilidade com o ORM, serviços e API.
+- Adicionei teste unitário exercitando o `ControleJornada` de forma isolada.
+- Documentei detalhadamente a violação, o problema, a solução, os testes e os trade-offs em `docs/solid.md`.
+
+Arquivos: `src/airline/domain/model.py`, `tests/unit/domain/test_tripulante.py`, `docs/solid.md`, `DECISIONS.md`
+
+Commits:
+- `f94553c` - 03/11 - test: adiciona testes de limites e verificacao de voo para o tripulante
+- `17e4cc7` - 03/11 - refactor: separa responsabilidade de jornada em ControleJornada (SRP)
+- `c0ecba2` - 03/11 - docs: documenta refatoracao do principio de responsabilidade unica no Tripulante
+
+#### Decisão: extração de ControleJornada com delegação transparente
+2026-11-03
+
+Decidi extrair a responsabilidade de acumular horas e validar o teto regulamentar para a classe `ControleJornada`, mantendo em `Tripulante` properties e métodos que delegam para essa instância. Isso garante a separação de responsabilidades (SRP) — permitindo que regras de jornada e tetos da aviação civil evoluam sem alterar o cadastro do profissional — sem quebrar os mapeamentos do SQLAlchemy ORM nem a camada de serviço.
+
+#### Uso de IA
+2026-11-03
+
+Usei o assistente de IA para discutir alternativas de refatoração aderentes ao SOLID, validar a conformidade dos tópicos exigidos no `docs/solid.md` e apoiar na execução dos comandos Git. A análise do código, a implementação das classes e testes e as decisões de design foram revisadas e validadas por mim.
