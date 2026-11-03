@@ -1,5 +1,5 @@
 import pytest
-from airline.domain.model import Tripulante, CargoTripulante, ErroRegraTripulacao
+from airline.domain.model import Tripulante, CargoTripulante, ErroRegraTripulacao, ControleJornada
 
 
 def test_deve_criar_tripulante_com_horas_zeradas():
@@ -64,3 +64,18 @@ def test_deve_permitir_acumular_horas_exatamente_ate_o_teto():
 
     assert tripulante.horas_de_voo == 85.0
     assert tripulante.pode_voar(0.1) is False
+
+
+def test_controle_jornada_isolado_deve_controlar_saldo_e_estouro():
+    jornada = ControleJornada(teto_horas=85.0, horas_acumuladas=0.0)
+    assert jornada.horas_disponiveis == 85.0
+    assert jornada.pode_voar(80.0) is True
+
+    jornada.registrar_horas(80.0)
+    assert jornada.horas_de_voo == 80.0
+    assert jornada.horas_disponiveis == 5.0
+    assert jornada.pode_voar(5.0) is True
+    assert jornada.pode_voar(5.1) is False
+
+    with pytest.raises(ErroRegraTripulacao, match="Teto regulamentar de horas ultrapassado"):
+        jornada.registrar_horas(6.0)

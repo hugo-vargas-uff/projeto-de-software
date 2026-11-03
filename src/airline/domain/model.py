@@ -221,21 +221,56 @@ class CargoTripulante(Enum):
     COMISSARIO = "COMISSARIO"
 
 
-class Tripulante:
-    def __init__(self, nome: str, cargo: CargoTripulante, teto_horas: float = 85.0):
-        self.id = uuid.uuid4()
-        self.nome = nome
-        self.cargo = cargo
-        self.teto_horas = teto_horas
-        self.horas_de_voo = 0.0
+class ControleJornada:
+    """Responsabilidade única: controle de horas voadas e aplicação de limites regulamentares."""
 
-    def registrar_horas_de_voo(self, horas: float):
+    def __init__(self, teto_horas: float = 85.0, horas_acumuladas: float = 0.0):
+        self.teto_horas = teto_horas
+        self.horas_de_voo = horas_acumuladas
+
+    def registrar_horas(self, horas: float):
         if self.horas_de_voo + horas > self.teto_horas:
             raise ErroRegraTripulacao("Teto regulamentar de horas ultrapassado")
         self.horas_de_voo += horas
 
     def pode_voar(self, duracao_horas: float) -> bool:
         return (self.horas_de_voo + duracao_horas) <= self.teto_horas
+
+    @property
+    def horas_disponiveis(self) -> float:
+        return max(0.0, self.teto_horas - self.horas_de_voo)
+
+
+class Tripulante:
+    """Responsabilidade única: dados cadastrais e identificação do profissional aeronáutico."""
+
+    def __init__(self, nome: str, cargo: CargoTripulante, teto_horas: float = 85.0):
+        self.id = uuid.uuid4()
+        self.nome = nome
+        self.cargo = cargo
+        self.jornada = ControleJornada(teto_horas=teto_horas, horas_acumuladas=0.0)
+
+    @property
+    def teto_horas(self) -> float:
+        return self.jornada.teto_horas
+
+    @teto_horas.setter
+    def teto_horas(self, valor: float):
+        self.jornada.teto_horas = valor
+
+    @property
+    def horas_de_voo(self) -> float:
+        return self.jornada.horas_de_voo
+
+    @horas_de_voo.setter
+    def horas_de_voo(self, valor: float):
+        self.jornada.horas_de_voo = valor
+
+    def registrar_horas_de_voo(self, horas: float):
+        self.jornada.registrar_horas(horas)
+
+    def pode_voar(self, duracao_horas: float) -> bool:
+        return self.jornada.pode_voar(duracao_horas)
 
     def __eq__(self, outro):
         if not isinstance(outro, Tripulante):
@@ -251,8 +286,7 @@ class Tripulante:
         tripulante.id = id
         tripulante.nome = nome
         tripulante.cargo = cargo
-        tripulante.teto_horas = teto_horas
-        tripulante.horas_de_voo = horas_de_voo
+        tripulante.jornada = ControleJornada(teto_horas=teto_horas, horas_acumuladas=horas_de_voo)
         return tripulante
 
 
