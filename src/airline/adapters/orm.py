@@ -2,7 +2,8 @@ import uuid
 
 from sqlalchemy import Column, String, Enum, Integer, Date, ForeignKey, Float
 from sqlalchemy.orm import declarative_base, relationship
-from airline.domain.model import Reserva, Passageiro, StatusReserva, StatusOrdemManutencao, Tripulante, CargoTripulante, Escala
+from airline.domain.model import Reserva, Passageiro, StatusReserva, StatusOrdemManutencao, Tripulante, CargoTripulante, \
+    Escala, CPF
 
 Base = declarative_base()
 
@@ -37,20 +38,19 @@ class PassageiroModel(Base):
     cpf = Column(String, nullable=False, unique=True)
 
     @classmethod
-    def from_domain(cls, passageiro: Passageiro):
+    def from_domain(cls, passageiro):
         return cls(
             id=str(passageiro.id),
             nome=passageiro.nome,
-            cpf=passageiro.cpf
+            cpf=passageiro.cpf.valor
         )
 
     def to_domain(self):
         return Passageiro.restaurar(
             id=uuid.UUID(str(self.id)),
             nome=self.nome,
-            cpf=self.cpf
+            cpf=CPF(str(self.cpf))
         )
-
 
 class VooModel(Base):
     __tablename__ = "voos"
