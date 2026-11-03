@@ -113,50 +113,28 @@ class SqlAlchemyAeronaveRepository(AeronaveRepository):
         self.session = session
 
     def salvar(self, aeronave: Aeronave) -> None:
-        aeronave_model = AeronaveModel(
-            prefixo=aeronave.prefixo,
-            modelo=aeronave.modelo,
-            capacidade=aeronave.capacidade,
-            validade_vistoria=aeronave.validade_vistoria
-        )
-
-        for ordem in aeronave.ordens_manutencao:
-            ordem_model = OrdemManutencaoModel(
-                descricao=ordem.descricao,
-                status=ordem.status
-            )
-
-            aeronave_model.ordens_manutencao.append(ordem_model)
-
-        self.session.add(aeronave_model)
+        model = self.session.query(AeronaveModel).filter_by(prefixo=aeronave.prefixo).first()
+        if model is None:
+            model = AeronaveModel.from_domain(aeronave)
+            self.session.add(model)
+        else:
+            # mesmo contrato do repositorio falso: salvar uma aeronave que ja
+            # existe atualiza, nao insere de novo
+            model.modelo = aeronave.modelo
+            model.capacidade = aeronave.capacidade
+            model.validade_vistoria = aeronave.validade_vistoria
+            # a ordem nao tem identidade no dominio, entao as ordens sao
+            # regravadas; o delete-orphan apaga as antigas
+            model.ordens_manutencao.clear()
+            for ordem in aeronave.ordens_manutencao:
+                model.ordens_manutencao.append(OrdemManutencaoModel.from_domain(ordem))
         self.session.commit()
 
     def buscar(self, prefixo):
-        aeronave_model = (
-            self.session.query(AeronaveModel)
-            .filter_by(prefixo=prefixo)
-            .first()
-        )
-
-        if aeronave_model is None:
+        model = self.session.query(AeronaveModel).filter_by(prefixo=prefixo).first()
+        if model is None:
             return None
-
-        aeronave = Aeronave(
-            prefixo=aeronave_model.prefixo,
-            modelo=aeronave_model.modelo,
-            capacidade=aeronave_model.capacidade,
-            validade_vistoria=aeronave_model.validade_vistoria
-        )
-
-        for ordem_model in aeronave_model.ordens_manutencao:
-            ordem = aeronave.abrir_ordem_manutencao(
-                ordem_model.descricao
-            )
-
-            if ordem_model.status == StatusOrdemManutencao.CONCLUIDA:
-                aeronave.concluir_ordem_manutencao(ordem)
-
-        return aeronave
+        return model.to_domain()
 
     
 

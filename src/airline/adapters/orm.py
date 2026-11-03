@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import Column, String, Enum, Integer, Date, ForeignKey, Float
 from sqlalchemy.orm import declarative_base, relationship
 from airline.domain.model import Reserva, Passageiro, StatusReserva, StatusOrdemManutencao, Tripulante, CargoTripulante, \
-    Escala, CPF
+    Escala, CPF, Aeronave, OrdemManutencao
 
 Base = declarative_base()
 
@@ -83,6 +83,33 @@ class AeronaveModel(Base):
         cascade="all, delete-orphan"
     )
 
+    @classmethod
+    def from_domain(cls, aeronave: Aeronave):
+        model = cls(
+            prefixo=aeronave.prefixo,
+            modelo=aeronave.modelo,
+            capacidade=aeronave.capacidade,
+            validade_vistoria=aeronave.validade_vistoria
+        )
+        for ordem in aeronave.ordens_manutencao:
+            model.ordens_manutencao.append(OrdemManutencaoModel.from_domain(ordem))
+        return model
+
+    def to_domain(self):
+        aeronave = Aeronave(
+            prefixo=self.prefixo,
+            modelo=self.modelo,
+            capacidade=self.capacidade,
+            validade_vistoria=self.validade_vistoria
+        )
+        # as ordens voltam pelos metodos da propria aeronave, que continua
+        # sendo a unica a abrir e concluir ordens (ADR 0004)
+        for ordem_model in self.ordens_manutencao:
+            ordem = aeronave.abrir_ordem_manutencao(ordem_model.descricao)
+            if ordem_model.status == StatusOrdemManutencao.CONCLUIDA:
+                aeronave.concluir_ordem_manutencao(ordem)
+        return aeronave
+
 
 class OrdemManutencaoModel(Base):
     __tablename__ = "ordens_manutencao"
@@ -100,6 +127,10 @@ class OrdemManutencaoModel(Base):
         "AeronaveModel",
         back_populates="ordens_manutencao"
     )
+
+    @classmethod
+    def from_domain(cls, ordem: OrdemManutencao):
+        return cls(descricao=ordem.descricao, status=ordem.status)
 
 
 
