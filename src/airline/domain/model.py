@@ -1,4 +1,4 @@
-import uuid
+import uuid, re
 from enum import Enum
 
 class StatusReserva(Enum):
@@ -26,10 +26,24 @@ class Reserva:
 
         return reserva
 
+class CPF:
+    def __init__(self, valor: str):
+        self.valor = self._normalizar(valor)
+        self._validar()
+
+    def _normalizar(self, valor: str) -> str:
+        return re.sub(r"\D", "", valor)
+
+    def _validar(self):
+        if len(self.valor) != 11:
+            raise ValueError("CPF deve possuir 11 dígitos")
+
+        if self.valor == self.valor[0] * 11:
+            raise ValueError("CPF inválido")
 
 class Passageiro:
 
-    def __init__(self, nome, cpf):
+    def __init__(self, nome, cpf: CPF):
         self.id = uuid.uuid4()
         self.nome = nome
         self.cpf = cpf
