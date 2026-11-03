@@ -76,6 +76,75 @@ Considerei criar uma classe por status, mas preferi a tabela porque os status do
 
 ## Reserva e Passageiro, Hugo Vargas
 
+### Princípio Violado: Princípio da Responsabilidade Única
+
+### Agregado: Passageiro
+
+### 1. Violação identificada
+
+**Commit anterior:** `81f49f1`
+
+Antes da refatoração, o CPF era representado diretamente como uma string na entidade `Passageiro`:
+
+```python
+class Passageiro:
+    def __init__(self, nome, cpf):
+        self.id = uuid.uuid4()
+        self.nome = nome
+        self.cpf = cpf
+```
+
+A entidade recebia o CPF sem uma abstração específica para representar e centralizar as regras relacionadas a esse dado.
+
+**Problema concreto:**
+
+A entidade `Passageiro` utilizava uma string para representar o CPF, sem uma abstração responsável por garantir sua normalização e validade. Isso fazia com que as regras específicas desse dado não tivessem um local próprio no domínio. Caso essas regras precisassem ser ampliadas ou modificadas, sua implementação poderia acabar distribuída entre diferentes componentes, aumentando o acoplamento e dificultando a manutenção.
+
+### 2. Refatoração realizada
+
+**Commit posterior:** `f1184e0`
+
+Foi criado o Value Object `CPF`, responsável por centralizar as regras de representação, normalização e validação do CPF.
+
+A implementação contempla:
+
+- Normalização do valor, removendo caracteres que não sejam dígitos.
+- Validação da quantidade de dígitos.
+- Rejeição de sequências com todos os dígitos iguais.
+
+A entidade `Passageiro` passou a exigir uma instância de `CPF` em seu construtor e no método `restaurar()`, impedindo que uma string seja utilizada diretamente como CPF.
+
+Também foram criadas duas exceções específicas de domínio:
+
+- `CpfInvalidoException`: lançada pelo Value Object `CPF` quando o valor não atende às regras de validação.
+- `TipoCpfInvalidoException`: lançada pela entidade `Passageiro` quando recebe um objeto que não é uma instância de `CPF`.
+
+O `PassageiroService` recebe o Value Object já construído pelo Controller e permanece responsável pelas regras do caso de uso, como verificar a existência de cadastros com CPF duplicado.
+
+O `PassageiroModel` realiza as conversões entre o Value Object e a representação textual armazenada no banco de dados, sem exigir alterações na estrutura de persistência.
+
+### 3. Garantia de comportamento por meio de testes
+
+Foram implementados e executados testes para verificar:
+
+- Criação e normalização do Value Object `CPF`.
+- Rejeição de CPFs com quantidade incorreta de dígitos.
+- Rejeição de CPFs com todos os dígitos iguais.
+- Impedimento da criação de passageiros com CPF representado diretamente como string.
+- Prevenção de cadastros com CPF duplicado.
+- Retorno HTTP 400 nos endpoints para requisições com CPFs inválidos.
+
+Os testes automatizados verificaram que as funcionalidades existentes de cadastro e identificação de passageiros continuaram funcionando após a refatoração. Também foram adicionados testes para as novas regras do Value Object `CPF`, garantindo a normalização dos valores, a rejeição de CPFs inválidos e o tratamento adequado das exceções nos endpoints.
+
+Dessa forma, foi possível preservar os comportamentos anteriores, como a unicidade do CPF, enquanto novas garantias foram incorporadas ao domínio.
+
+### 4. Custo
+
+A principal desvantagem da alteração foi o aumento da quantidade de classes e da indireção no código, com a introdução do Value Object `CPF` e de exceções específicas de domínio.
+
+Também foi necessário adaptar os pontos de entrada da aplicação, os serviços e as conversões da camada de persistência para trabalhar com o novo objeto.
+
+Apesar desse custo, a alteração compensa por centralizar as regras relacionadas ao CPF, evitar a duplicação de validações e tornar o domínio mais consistente e fácil de manter e testar.
 ## Tripulante e Escala, Filipe Moreira
 
 ### Princípio violado: Responsabilidade Única (SRP)
