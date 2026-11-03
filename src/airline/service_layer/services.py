@@ -1,6 +1,7 @@
 from airline.domain.model import (
     Reserva,
     Passageiro,
+    CPF,
     Aeronave,
     Tripulante,
     CargoTripulante,
@@ -65,20 +66,20 @@ class ReservaService:
 
 
 class PassageiroService:
-
-    def __init__(self, passageiro_repository: PassageiroRepository):
+    def __init__(self, passageiro_repository):
         self.passageiro_repository = passageiro_repository
 
-    def criar_passageiro(self, nome, cpf):
-        if self.passageiro_repository.buscar_por_cpf(cpf) is not None:
+    def criar_passageiro(self, nome, cpf: CPF):
+        if self.passageiro_repository.buscar_por_cpf(cpf.valor) is not None:
             raise CpfJaCadastradoException("Já existe um passageiro cadastrado com este CPF.")
 
         passageiro = Passageiro(nome=nome, cpf=cpf)
         self.passageiro_repository.salvar(passageiro)
+
         return passageiro
 
-    def buscar(self, cpf):
-        passageiro = self.passageiro_repository.buscar_por_cpf(cpf)
+    def buscar(self, cpf: CPF):
+        passageiro = self.passageiro_repository.buscar_por_cpf(cpf.valor)
 
         if passageiro is None:
             raise PassageiroNaoEncontrado("Passageiro nao encontrado")
