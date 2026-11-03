@@ -13,11 +13,13 @@ from datetime import date
 from airline.adapters.repository import SqlAlchemyVooRepository, SqlAlchemyAeronaveRepository
 from airline.service_layer.services import VooService, AeronaveService
 from airline.domain.model import ErroRegraVoo
-from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveJaExiste, AeronaveIndisponivel, \
-    PassageiroNaoEncontrado, CpfJaCadastradoException
+from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveJaExiste, \
+    AeronaveIndisponivel, \
+    PassageiroNaoEncontrado, CpfJaCadastradoException, CpfInvalidoException
 from airline.adapters.repository import SqlAlchemyPassageiroRepository
 from airline.service_layer.services import PassageiroService
 
+from airline.domain.model import CPF
 
 app = Flask(__name__)
 
@@ -346,16 +348,18 @@ def criar_passageiro():
         repository = SqlAlchemyPassageiroRepository(session)
         service = PassageiroService(repository)
 
-        passageiro = service.criar_passageiro(nome=data["nome"], cpf=data["cpf"])
+        passageiro = service.criar_passageiro(nome=data["nome"], cpf=CPF(data["cpf"]))
 
         return jsonify({
             "id": str(passageiro.id),
             "nome": passageiro.nome,
-            "cpf": passageiro.cpf
+            "cpf": passageiro.cpf.valor
         }), 201
 
     except CpfJaCadastradoException as e:
         return jsonify({ "mensagem": str(e) }), 409
+    except CpfInvalidoException as e:
+        return jsonify({"erro": str(e)}), 400
 
     finally:
         session.close()
@@ -369,12 +373,12 @@ def buscar_passageiro(cpf):
         repository = SqlAlchemyPassageiroRepository(session)
         service = PassageiroService(repository)
 
-        passageiro = service.buscar(cpf)
+        passageiro = service.buscar(CPF(cpf))
 
         return jsonify({
             "id": str(passageiro.id),
             "nome": passageiro.nome,
-            "cpf": passageiro.cpf
+            "cpf": passageiro.cpf.valor
         }), 200
 
     except PassageiroNaoEncontrado as e:
