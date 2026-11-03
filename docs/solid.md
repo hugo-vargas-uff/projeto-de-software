@@ -78,4 +78,69 @@ Considerei criar uma classe por status, mas preferi a tabela porque os status do
 
 ## Tripulante e Escala, Filipe Moreira
 
+### Princípio violado: Responsabilidade Única (SRP)
+
+Código antes, em `src/airline/domain/model.py`, do commit `8f4b87e` (19/09):
+
+```python
+class Tripulante:
+    def __init__(self, nome: str, cargo: CargoTripulante, teto_horas: float = 85.0):
+        self.id = uuid.uuid4()
+        self.nome = nome
+        self.cargo = cargo
+        self.teto_horas = teto_horas
+        self.horas_de_voo = 0.0
+
+    def registrar_horas_de_voo(self, horas: float):
+        if self.horas_de_voo + horas > self.teto_horas:
+            raise ErroRegraTripulacao("Teto regulamentar de horas ultrapassado")
+        self.horas_de_voo += horas
+
+    def pode_voar(self, duracao_horas: float) -> bool:
+        return (self.horas_de_voo + duracao_horas) <= self.teto_horas
+```
+
+### O problema
+
+A classe `Tripulante` acumulava duas responsabilidades com motivos diferentes para mudar:
+1. **Identidade e cadastro do profissional:** gerenciar atributos cadastrais como identificador único (`id`), `nome` e `cargo`.
+2. **Controle de regras regulamentares de jornada de voo:** rastrear `horas_de_voo`, verificar o limite regulamentar (`teto_horas`), validar disponibilidade de jornada (`pode_voar`) e lançar exceções de extrapolação (`ErroRegraTripulacao`).
+
+Se a regulamentação aeronáutica (como a Lei do Aeronauta nº 13.475/2017) mudasse as regras de jornada — como cálculo de saldo residual, tetos diferenciados por período ou descanso obrigatório —, éramos forçados a modificar a classe de cadastro `Tripulante`. Além disso, a lógica de jornada não podia ser testada ou reutilizada de forma isolada sem instanciar uma entidade completa de domínio com UUID e cargo.
+
+### A refatoração
+
+No commit `17e4cc7`, extraí toda a responsabilidade de jornada e limites regulamentares para uma classe/Objeto de Valor dedicado, `ControleJornada`. A entidade `Tripulante` passou a compor essa jornada e a delegar as operações, mantendo o foco exclusivo na identidade do aeronauta:
+
+```python
+class ControleJornada:
+    """Responsabilidade única: controle de horas voadas e aplicação de limites regulamentares."""
+
+    def __init__(self, teto_horas: float = 85.0, horas_acumuladas: float = 0.0):
+        self.teto_horas = teto_horas
+        self.horas_de_voo = horas_acumuladas
+
+    def registrar_horas(self, horas: float):
+        if self.horas_de_voo + horas > self.teto_horas:
+            raise ErroRegraTripulacao("Teto regulamentar de horas ultrapassado")
+        self.horas_de_voo += horas
+
+    def pode_voar(self, duracao_horas: float) -> bool:
+        return (self.horas_de_voo + duracao_horas) <= self.teto_horas
+
+    @property
+    def horas_disponiveis(self) -> float:
+        return max(0.0, self.teto_horas - self.horas_de_voo)
+```
+
+Na classe `Tripulante`, o construtor instancia `self.jornada = ControleJornada(teto_horas, 0.0)` e expõe propriedades e métodos delegados (`teto_horas`, `horas_de_voo`, `registrar_horas_de_voo`, `pode_voar`). Isso manteve a interface pública idêntica, preservando total compatibilidade com a camada de serviço (`TripulacaoService`), os adaptadores do SQLAlchemy (`TripulanteModel`) e os entrypoints da API.
+
+### Testes
+
+Antes de refatorar, adicionei testes de unidade em `tests/unit/domain/test_tripulante.py` (commit `f94553c`) para cobrir o método `pode_voar` e o caso de borda de atingir exatamente o teto de 85h. Em seguida, após a refatoração, acrescentei um teste específico exercitando `ControleJornada` de forma totalmente isolada. A suíte completa (135 testes) passou sem nenhuma regressão.
+
+### Custo
+
+A refatoração introduziu uma classe adicional (`ControleJornada`) e um nível de indireção através de properties delegadas em `Tripulante`. O custo é pequeno diante do ganho: as regras de jornada agora podem evoluir de forma independente das informações de cadastro, e a verificação de limites regulamentares pode ser testada isoladamente em memória sem a necessidade de instanciar entidades complexas.
+
 ## Despacho, Vinicius Duarte
