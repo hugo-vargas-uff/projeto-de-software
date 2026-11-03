@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 
 from airline.adapters.orm import Base
 from airline.adapters.repository import SqlAlchemyReservaRepository
-from airline.domain.model import Reserva, StatusReserva, Passageiro
+from airline.domain.model import Reserva, StatusReserva, Passageiro, CPF
 from airline.adapters.orm import ReservaModel
 
 def test_deve_salvar_reserva():
@@ -16,7 +16,7 @@ def test_deve_salvar_reserva():
 
     repository = SqlAlchemyReservaRepository(session)
 
-    passageiro = Passageiro("pedro", "717.774.400-25")
+    passageiro = Passageiro("pedro", CPF("717.774.400-25"))
 
     reserva = Reserva(voo_id="voo-123", passageiro_id=passageiro.id)
 
@@ -39,7 +39,7 @@ def test_deve_buscar_reserva():
 
     repository = SqlAlchemyReservaRepository(session)
 
-    passageiro = Passageiro(nome="pedro", cpf="717.774.400-25")
+    passageiro = Passageiro(nome="pedro", cpf=CPF("717.774.400-25"))
 
     reserva_model = ReservaModel(
         voo_id="voo-123",
@@ -67,10 +67,10 @@ def test_contar_reservas_por_voo():
 
     repository = SqlAlchemyReservaRepository(session)
 
-    passageiro = Passageiro(nome="pedro", cpf="717.774.400-25")
-    passageiro1 = Passageiro(nome="pedro", cpf="575.568.540-19")
-    passageiro2 = Passageiro(nome="pedro", cpf="282.154.860-53")
-    passageiro3 = Passageiro(nome="pedro", cpf="418.268.960-74")
+    passageiro = Passageiro(nome="pedro", cpf=CPF("717.774.400-25"))
+    passageiro1 = Passageiro(nome="pedro", cpf=CPF("717.774.400-25"))
+    passageiro2 = Passageiro(nome="pedro", cpf=CPF("717.774.400-25"))
+    passageiro3 = Passageiro(nome="pedro", cpf=CPF("717.774.400-25"))
 
     reserva1 = Reserva(voo_id="voo-123", passageiro_id=passageiro.id)
     reserva2 = Reserva(voo_id="voo-123", passageiro_id=passageiro1.id)
@@ -100,8 +100,8 @@ def test_contar_apenas_reservas_confirmadas():
 
     repository = SqlAlchemyReservaRepository(session)
 
-    passageiro1 = Passageiro(nome="pedro", cpf="717.774.400-25")
-    passageiro2 = Passageiro(nome="pedro", cpf="575.568.540-19")
+    passageiro1 = Passageiro(nome="pedro", cpf=CPF("717.774.400-25"))
+    passageiro2 = Passageiro(nome="pedro", cpf=CPF("717.774.400-25"))
 
     reserva1 = Reserva(voo_id="voo-123", passageiro_id=passageiro1.id)
     reserva2 = Reserva(voo_id="voo-123", passageiro_id=passageiro2.id)

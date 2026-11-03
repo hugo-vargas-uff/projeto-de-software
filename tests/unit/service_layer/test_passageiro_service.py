@@ -1,5 +1,5 @@
 import pytest
-from airline.domain.model import Passageiro
+from airline.domain.model import Passageiro, CPF
 from airline.service_layer.services import PassageiroService
 from airline.service_layer.services import PassageiroRepository
 from airline.domain.exception import CpfJaCadastradoException
@@ -12,7 +12,7 @@ class FakePassageiroRepository(PassageiroRepository):
 
     def salvar(self, passageiro: Passageiro) -> None:
         self.passageiros_id[passageiro.id] = passageiro
-        self.passageiros_cpf[passageiro.cpf] = passageiro.cpf
+        self.passageiros_cpf[passageiro.cpf.valor] = passageiro
 
     def buscar_por_id(self, passageiro_id):
         return self.passageiros_id.get(passageiro_id)
@@ -25,17 +25,17 @@ def test_deve_criar_passageiro():
     repository = FakePassageiroRepository()
     service = PassageiroService(repository)
 
-    passageiro = service.criar_passageiro(nome="João", cpf="12345678900")
+    passageiro = service.criar_passageiro(nome="João", cpf=CPF("12345678900"))
 
     assert passageiro.nome == "João"
-    assert passageiro.cpf == "12345678900"
+    assert passageiro.cpf.valor == "12345678900"
 
 def test_nao_deve_criar_passageiro_com_cpf_existente():
 
     repository = FakePassageiroRepository()
     service = PassageiroService(repository)
 
-    service.criar_passageiro(nome="Pedro",cpf="717.774.400-25")
+    service.criar_passageiro(nome="Pedro",cpf=CPF("717.774.400-25"))
 
     with pytest.raises(CpfJaCadastradoException, match="Já existe um passageiro cadastrado com este CPF."):
-        service.criar_passageiro(nome="João",cpf="717.774.400-25")
+        service.criar_passageiro(nome="João",cpf=CPF("717.774.400-25"))

@@ -1,4 +1,4 @@
-from airline.domain.model import Reserva, Passageiro, StatusReserva, Trecho, Voo
+from airline.domain.model import Reserva, Passageiro, StatusReserva, Trecho, Voo, CPF
 from airline.service_layer.services import ReservaService
 from airline.service_layer.services import ReservaRepository
 from airline.domain.exception import PassageiroNaoEncontrado
@@ -40,7 +40,7 @@ def test_deve_criar_reserva():
         voo_repository
     )
 
-    passageiro = Passageiro(nome="pedro",cpf="717.774.400-25")
+    passageiro = Passageiro(nome="pedro",cpf=CPF("717.774.400-25"))
 
     trecho = Trecho(origem="Rio de Janeiro",destino="São Paulo")
 
@@ -72,7 +72,7 @@ def test_buscar_reserva():
         voo_repository
     )
 
-    passageiro = Passageiro(nome="pedro",cpf="717.774.400-25")
+    passageiro = Passageiro(nome="pedro",cpf=CPF("717.774.400-25"))
 
     trecho = Trecho(origem="Rio de Janeiro",destino="São Paulo")
 
@@ -97,10 +97,10 @@ def test_buscar_reserva():
     assert reserva_salva.status == StatusReserva.CONFIRMADA
 
 def test_contar_reservas_por_voo():
-    passageiro = Passageiro(nome="pedro", cpf="717.774.400-25")
-    passageiro1 = Passageiro(nome="ana", cpf="575.568.540-19")
-    passageiro2 = Passageiro(nome="henrique", cpf="282.154.860-53")
-    passageiro3 = Passageiro(nome="joao", cpf="418.268.960-74")
+    passageiro = Passageiro(nome="pedro", cpf=CPF("717.774.400-25"))
+    passageiro1 = Passageiro(nome="ana", cpf=CPF("717.774.400-25"))
+    passageiro2 = Passageiro(nome="henrique", cpf=CPF("717.774.400-25"))
+    passageiro3 = Passageiro(nome="joao", cpf=CPF("717.774.400-25"))
 
     reserva1 = Reserva(voo_id="voo-123", passageiro_id=passageiro.id)
     reserva2 = Reserva(voo_id="voo-123", passageiro_id=passageiro1.id)
