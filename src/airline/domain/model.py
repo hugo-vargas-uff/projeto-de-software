@@ -31,13 +31,13 @@ class Reserva:
 
 class CPF:
     def __init__(self, valor: str):
-        self.valor = self._normalizar(valor)
-        self._validar()
+        self.valor = self.normalizar(valor)
+        self.validar()
 
-    def _normalizar(self, valor: str) -> str:
+    def normalizar(self, valor: str) -> str:
         return re.sub(r"\D", "", valor)
 
-    def _validar(self):
+    def validar(self):
         if len(self.valor) != 11:
             raise CpfInvalidoException("CPF deve possuir 11 dígitos.")
 
