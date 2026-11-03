@@ -1,6 +1,9 @@
 import uuid, re
 from enum import Enum
 
+from airline.domain.exception import TipoCpfInvalidoException, CpfInvalidoException
+
+
 class StatusReserva(Enum):
     CONFIRMADA = "CONFIRMADA"
     CANCELADA = "CANCELADA"
@@ -36,26 +39,30 @@ class CPF:
 
     def _validar(self):
         if len(self.valor) != 11:
-            raise ValueError("CPF deve possuir 11 dígitos")
+            raise CpfInvalidoException("CPF deve possuir 11 dígitos.")
 
         if self.valor == self.valor[0] * 11:
-            raise ValueError("CPF inválido")
+            raise CpfInvalidoException("CPF inválido.")
+
 
 class Passageiro:
-
     def __init__(self, nome, cpf: CPF):
+        if not isinstance(cpf, CPF):
+            raise TipoCpfInvalidoException("O CPF deve ser uma instância da classe CPF.")
+
         self.id = uuid.uuid4()
         self.nome = nome
         self.cpf = cpf
 
     @classmethod
     def restaurar(cls, id, nome, cpf):
-        passageiro = cls.__new__(cls)
+        if not isinstance(cpf, CPF):
+            raise TipoCpfInvalidoException("O CPF deve ser uma instância da classe CPF.")
 
+        passageiro = cls.__new__(cls)
         passageiro.id = id
         passageiro.nome = nome
         passageiro.cpf = cpf
-
         return passageiro
 
 # ----------------------------------

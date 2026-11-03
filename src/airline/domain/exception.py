@@ -1,6 +1,12 @@
 class CpfJaCadastradoException(Exception):
     pass
 
+class CpfInvalidoException(Exception):
+    pass
+
+class TipoCpfInvalidoException(Exception):
+    pass
+
 class PassageiroNaoEncontrado(Exception):
     pass
 
