@@ -787,6 +787,8 @@ Commits:
 - `e98040c` - 02/11 - test: contrato do AeronaveRepository roda igual no fake e no SQLAlchemy
 - `0353d3e` - 03/11 - refactor: salvar da Aeronave atualiza em vez de inserir, igual ao repositorio falso
 
+Observação sobre a data do `e98040c`: o commit foi criado em 02/11 às 19:22 (data de autor), mas o GitHub mostra a data de commit como 03/11, porque o `git pull --rebase` reaplicou o commit por cima dos commits dos colegas antes do push. Nenhuma data foi alterada à mão e nenhum commit já publicado foi reescrito.
+
 #### Decisão: substituir a lista de ordens em vez de dar identidade à OrdemManutencao
 2026-11-03
 
