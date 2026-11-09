@@ -19,6 +19,7 @@ from airline.domain.exception import CpfJaCadastradoException, PassageiroNaoEnco
 from airline.domain.model import Voo, Trecho
 from airline.domain.repositories import VooRepository
 from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel
+from airline.service_layer.observadores_voo import ObservadorDeVoo
 
 class ReservaService:
 
@@ -240,6 +241,10 @@ class VooService:
         self.voo_repository = voo_repository
         self.aeronave_repository = aeronave_repository
         self.session = session
+        self.observadores = []  #avisados quando um voo e cancelado
+
+    def inscrever(self, observador: ObservadorDeVoo):
+        self.observadores.append(observador)
 
     def agendar_voo(self, numero_voo, origem, destino, prefixo_aeronave, hoje):
         if self.voo_repository.buscar(numero_voo) is not None:
@@ -268,6 +273,9 @@ class VooService:
         voo.cancelar()  #se o voo ja foi realizado ou cancelado, Voo lanca ErroRegraVoo
         self.voo_repository.salvar(voo)
         self.session.commit()
+        #so avisa depois que o cancelamento foi confirmado no banco
+        for observador in self.observadores:
+            observador.voo_cancelado(voo.numero_voo)
         return voo.status.value
 
     def _buscar_voo(self, numero_voo):
