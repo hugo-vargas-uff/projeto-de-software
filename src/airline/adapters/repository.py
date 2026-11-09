@@ -11,9 +11,14 @@ class SqlAlchemyReservaRepository(ReservaRepository):
         self.session = session
 
     def salvar(self, reserva: Reserva) -> None:
-        reserva_model = ReservaModel.from_domain(reserva)
-
-        self.session.add(reserva_model)
+        reserva_model = self.session.query(ReservaModel).filter_by(
+            voo_id=str(reserva.voo_id), passageiro_id=str(reserva.passageiro_id)
+        ).first()
+        if reserva_model is None:
+            self.session.add(ReservaModel.from_domain(reserva))
+        else:
+            # a reserva ja existe, entao so o status pode ter mudado
+            reserva_model.status = reserva.status
         self.session.commit()
 
     def buscar(self, voo_id, passageiro_id):

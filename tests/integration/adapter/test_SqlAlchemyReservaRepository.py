@@ -29,6 +29,27 @@ def test_deve_salvar_reserva():
     assert reserva_model.passageiro_id == passageiro.id.__str__()
     assert reserva_model.status == StatusReserva.CONFIRMADA
 
+def test_salvar_reserva_que_ja_existe_atualiza_o_status():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    Session = sessionmaker(bind=engine)
+    
+    session = Session()
+
+    repository = SqlAlchemyReservaRepository(session)
+
+    repository.salvar(Reserva(voo_id="voo-123", passageiro_id="passageiro-1"))
+
+    reserva = repository.buscar(voo_id="voo-123", passageiro_id="passageiro-1")
+
+    reserva.cancelar()
+
+    repository.salvar(reserva)
+    
+    assert session.query(ReservaModel).count() == 1
+    assert repository.buscar(voo_id="voo-123", passageiro_id="passageiro-1").status == StatusReserva.CANCELADA
+
 def test_deve_buscar_reserva():
 
     engine = create_engine("sqlite:///:memory:")
