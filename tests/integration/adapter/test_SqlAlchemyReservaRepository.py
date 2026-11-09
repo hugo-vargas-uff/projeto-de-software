@@ -46,7 +46,7 @@ def test_salvar_reserva_que_ja_existe_atualiza_o_status():
     reserva.cancelar()
 
     repository.salvar(reserva)
-    
+
     assert session.query(ReservaModel).count() == 1
     assert repository.buscar(voo_id="voo-123", passageiro_id="passageiro-1").status == StatusReserva.CANCELADA
 
@@ -139,3 +139,21 @@ def test_contar_apenas_reservas_confirmadas():
     numero_de_reservas = repository.contar_reservas_por_voo("voo-123")
 
     assert numero_de_reservas == 1
+
+def test_listar_reservas_de_um_voo():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    Session = sessionmaker(bind=engine)
+
+    session = Session()
+
+    repository = SqlAlchemyReservaRepository(session)
+
+    repository.salvar(Reserva(voo_id="voo-123", passageiro_id="passageiro-1"))
+    repository.salvar(Reserva(voo_id="voo-123", passageiro_id="passageiro-2"))
+    repository.salvar(Reserva(voo_id="voo-999", passageiro_id="passageiro-1"))
+
+    reservas = repository.listar_por_voo("voo-123")
+    
+    assert sorted(reserva.passageiro_id for reserva in reservas) == ["passageiro-1", "passageiro-2"]

@@ -27,6 +27,9 @@ class FakeReservaRepository(ReservaRepository):
             if reserva.voo_id == voo_id
             and reserva.status == StatusReserva.CONFIRMADA
         )
+    
+    def listar_por_voo(self, voo_id):
+        return [reserva for reserva in self.reservas.values() if reserva.voo_id == voo_id]
 
 def test_deve_criar_reserva():
 

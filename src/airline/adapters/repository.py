@@ -36,6 +36,10 @@ class SqlAlchemyReservaRepository(ReservaRepository):
             voo_id=str(voo_id),status=StatusReserva.CONFIRMADA
         ).count()
 
+    def listar_por_voo(self, voo_id):
+        reserva_models = self.session.query(ReservaModel).filter_by(voo_id=str(voo_id)).all()
+        return [reserva_model.to_domain() for reserva_model in reserva_models]
+
 
 
 class SqlAlchemyPassageiroRepository(PassageiroRepository):

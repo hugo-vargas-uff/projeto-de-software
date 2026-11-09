@@ -16,6 +16,10 @@ class ReservaRepository(ABC):
     def contar_reservas_por_voo(self, voo_id):
         pass
 
+    @abstractmethod
+    def listar_por_voo(self, voo_id):
+        pass
+
 
 class PassageiroRepository(ABC):
 
