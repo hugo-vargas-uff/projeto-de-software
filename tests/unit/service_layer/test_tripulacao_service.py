@@ -137,3 +137,21 @@ def test_servico_nao_deve_escalar_tripulante_se_estourar_teto_de_horas():
             duracao_horas_voo=5.0
         )
 
+
+
+
+def test_servico_nao_deve_escalar_tripulante_em_escala_confirmada():
+    tripulante_repo = FakeTripulanteRepository()
+    escala_repo = FakeEscalaRepository()
+
+    t1 = Tripulante(nome="Lucas", cargo=CargoTripulante.PILOTO, teto_horas=85.0)
+    t2 = Tripulante(nome="Ana", cargo=CargoTripulante.COPILOTO, teto_horas=85.0)
+    tripulante_repo.salvar(t1)
+    tripulante_repo.salvar(t2)
+
+    servico = EscalaService(escala_repo=escala_repo, tripulante_repo=tripulante_repo)
+    servico.escalar_tripulante(voo_id="MV-2019", tripulante_id=t1.id, duracao_horas_voo=4.0)
+    servico.confirmar_escala(voo_id="MV-2019")
+
+    with pytest.raises(ErroRegraTripulacao, match="Nao e permitido alterar uma escala confirmada"):
+        servico.escalar_tripulante(voo_id="MV-2019", tripulante_id=t2.id, duracao_horas_voo=3.0)

@@ -313,23 +313,151 @@ class Tripulante:
 
     
 
-# Agregado Escalas
+# Agregado Escalas — Padrão GoF State (Ciclo de Vida da Escala)
+
+from abc import ABC, abstractmethod
+
+
+class EstadoEscala(ABC):
+    """Interface abstrata do padrão State para o ciclo de vida da Escala."""
+
+    @abstractmethod
+    def adicionar_tripulante(self, escala: "Escala", tripulante_id) -> None:
+        pass
+
+    @abstractmethod
+    def remover_tripulante(self, escala: "Escala", tripulante_id) -> None:
+        pass
+
+    @abstractmethod
+    def confirmar(self, escala: "Escala") -> None:
+        pass
+
+    @abstractmethod
+    def reabrir(self, escala: "Escala") -> None:
+        pass
+
+    @abstractmethod
+    def realizar(self, escala: "Escala") -> None:
+        pass
+
+    @property
+    @abstractmethod
+    def nome(self) -> str:
+        pass
+
+
+class EstadoEscalaAberta(EstadoEscala):
+    """Estado Aberta: permite alocação e remoção de tripulantes."""
+
+    @property
+    def nome(self) -> str:
+        return "ABERTA"
+
+    def adicionar_tripulante(self, escala: "Escala", tripulante_id) -> None:
+        if tripulante_id in escala.tripulantes_ids:
+            raise ErroRegraTripulacao("Tripulante ja escalado para este voo")
+        escala.tripulantes_ids.append(tripulante_id)
+
+    def remover_tripulante(self, escala: "Escala", tripulante_id) -> None:
+        if tripulante_id in escala.tripulantes_ids:
+            escala.tripulantes_ids.remove(tripulante_id)
+
+    def confirmar(self, escala: "Escala") -> None:
+        if len(escala.tripulantes_ids) == 0:
+            raise ErroRegraTripulacao("Nao e possivel confirmar uma escala sem tripulantes")
+        escala.definir_estado(EstadoEscalaConfirmada())
+
+    def reabrir(self, escala: "Escala") -> None:
+        raise ErroRegraTripulacao("Escala ja se encontra aberta")
+
+    def realizar(self, escala: "Escala") -> None:
+        raise ErroRegraTripulacao("So e possivel realizar uma escala previamente confirmada")
+
+
+class EstadoEscalaConfirmada(EstadoEscala):
+    """Estado Confirmada: tripulação homologada para voo; bloqueia alterações sem reabertura."""
+
+    @property
+    def nome(self) -> str:
+        return "CONFIRMADA"
+
+    def adicionar_tripulante(self, escala: "Escala", tripulante_id) -> None:
+        raise ErroRegraTripulacao("Nao e permitido alterar uma escala confirmada")
+
+    def remover_tripulante(self, escala: "Escala", tripulante_id) -> None:
+        raise ErroRegraTripulacao("Nao e permitido alterar uma escala confirmada")
+
+    def confirmar(self, escala: "Escala") -> None:
+        raise ErroRegraTripulacao("Escala ja se encontra confirmada")
+
+    def reabrir(self, escala: "Escala") -> None:
+        escala.definir_estado(EstadoEscalaAberta())
+
+    def realizar(self, escala: "Escala") -> None:
+        escala.definir_estado(EstadoEscalaRealizada())
+
+
+class EstadoEscalaRealizada(EstadoEscala):
+    """Estado Realizada: voo concluído; escala imutável para histórico e auditoria."""
+
+    @property
+    def nome(self) -> str:
+        return "REALIZADA"
+
+    def adicionar_tripulante(self, escala: "Escala", tripulante_id) -> None:
+        raise ErroRegraTripulacao("Nao e permitido alterar uma escala de voo ja realizado")
+
+    def remover_tripulante(self, escala: "Escala", tripulante_id) -> None:
+        raise ErroRegraTripulacao("Nao e permitido alterar uma escala de voo ja realizado")
+
+    def confirmar(self, escala: "Escala") -> None:
+        raise ErroRegraTripulacao("Escala ja foi realizada")
+
+    def reabrir(self, escala: "Escala") -> None:
+        raise ErroRegraTripulacao("Nao e possivel reabrir uma escala de voo ja realizado")
+
+    def realizar(self, escala: "Escala") -> None:
+        raise ErroRegraTripulacao("Escala ja foi realizada")
+
+
+MAPA_ESTADOS_ESCALA = {
+    "ABERTA": EstadoEscalaAberta,
+    "CONFIRMADA": EstadoEscalaConfirmada,
+    "REALIZADA": EstadoEscalaRealizada,
+}
 
 
 class Escala:
+    """Contexto do padrão GoF State."""
+
     def __init__(self, voo_id: str):
         self.id = uuid.uuid4()
         self.voo_id = voo_id
         self.tripulantes_ids = []
+        self._estado: EstadoEscala = EstadoEscalaAberta()
+
+    @property
+    def estado(self) -> str:
+        return self._estado.nome
+
+    def definir_estado(self, novo_estado: EstadoEscala):
+        self._estado = novo_estado
 
     def adicionar_tripulante(self, tripulante_id):
-        if tripulante_id in self.tripulantes_ids:
-            raise ErroRegraTripulacao("Tripulante ja escalado para este voo")
-        self.tripulantes_ids.append(tripulante_id)
+        self._estado.adicionar_tripulante(self, tripulante_id)
 
     def remover_tripulante(self, tripulante_id):
-        if tripulante_id in self.tripulantes_ids:
-            self.tripulantes_ids.remove(tripulante_id)
+        self._estado.remover_tripulante(self, tripulante_id)
+
+    def confirmar(self):
+        self._estado.confirmar(self)
+
+    def reabrir(self):
+        self._estado.reabrir(self)
+
+    def realizar(self):
+        self._estado.realizar(self)
 
     def total_tripulantes(self) -> int:
         return len(self.tripulantes_ids)
@@ -343,10 +471,12 @@ class Escala:
         return hash(self.id)
 
     @classmethod
-    def restaurar(cls, id, voo_id, tripulantes_ids):
+    def restaurar(cls, id, voo_id, tripulantes_ids, estado: str = "ABERTA"):
         escala = cls.__new__(cls)
         escala.id = id
         escala.voo_id = voo_id
         escala.tripulantes_ids = list(tripulantes_ids)
+        classe_estado = MAPA_ESTADOS_ESCALA.get(estado, EstadoEscalaAberta)
+        escala._estado = classe_estado()
         return escala
 

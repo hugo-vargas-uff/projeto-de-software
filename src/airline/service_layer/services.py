@@ -114,16 +114,27 @@ class EscalaService:
         if tripulante is None:
             raise ErroRegraTripulacao("Tripulante nao encontrado")
 
+        if not tripulante.pode_voar(duracao_horas_voo):
+            raise ErroRegraTripulacao("Teto regulamentar de horas ultrapassado")
+
         escala = self.escala_repo.buscar_por_voo(voo_id)
         if escala is None:
             escala = Escala(voo_id=voo_id)
 
-        tripulante.registrar_horas_de_voo(duracao_horas_voo)
         escala.adicionar_tripulante(tripulante_id)
+        tripulante.registrar_horas_de_voo(duracao_horas_voo)
 
         self.tripulante_repo.salvar(tripulante)
         self.escala_repo.salvar(escala)
 
+        return escala
+
+    def confirmar_escala(self, voo_id: str) -> Escala:
+        escala = self.escala_repo.buscar_por_voo(voo_id)
+        if escala is None:
+            raise ErroRegraTripulacao("Escala nao encontrada para este voo")
+        escala.confirmar()
+        self.escala_repo.salvar(escala)
         return escala
 
     def consultar_escala(self, voo_id: str):
