@@ -887,3 +887,33 @@ Para persistir, considerei uma tabela separada para contêineres, mas isso exigi
 #### Uso de IA
 
 Usei o Claude Code (assistente de IA da Anthropic, dentro do VS Code) neste checkpoint. Informei os padrões que os colegas já tinham escolhido (State, Strategy e Observer) e pedi uma sugestão para o Despacho. A IA leu o código do agregado e dos colegas para não repetir padrão nem estilo, sugeriu o Composite, escreveu a implementação, os testes, a seção do `gof.md` e a primeira versão desta subseção, e rodou a suíte de testes. Eu revisei o código e os textos, conferi que os testes antigos do Despacho continuam passando e fiz os commits. A responsabilidade pelo resultado é minha.
+
+### Matheus Verdan (@verdanmatheus) - Agregado Voo
+
+#### O que eu fiz
+
+- Apliquei o padrão Observer no cancelamento do voo para resolver a limitação que registrei em 29/09. Agora o `VooService` avisa os observadores inscritos depois de gravar o voo cancelado, e o `CancelaReservasDoVoo` cancela as reservas confirmadas daquele voo.
+- Pedi ao Hugo, responsável pela Reserva, que acrescentasse o método `listar_por_voo` ao repositório e fizesse o `salvar` atualizar uma reserva que já existe, porque o observador precisava das duas coisas. Conferi os dois commits dele (`f8a31c6` e `bbbdf5e`) antes de ligar o observador na API.
+- Acrescentei três testes de unidade para o padrão, dois com um observador de teste e um com o repositório falso da Reserva, além de um teste ponta a ponta que cancela o voo pela API e confere que a reserva também foi cancelada.
+- Preenchi a parte do Voo no docs/gof.md, com os participantes, o diagrama de classes, os testes e o custo.
+- Adicionei um `.mailmap` para que os meus commits apareçam com um nome só no histórico, atendendo ao ponto da correção da fase 1 sobre as duas identidades de autor.
+
+Arquivos: src/airline/service_layer/observadores_voo.py, src/airline/service_layer/services.py, src/airline/entrypoints/flask_app.py, tests/unit/service_layer/test_observadores_voo.py, tests/e2e/test_api_voo.py, docs/gof.md, .mailmap, DECISIONS.md
+
+Commits:
+- 1f2bef8 - 04/11 - add .mailmap
+- a2407a1 - 09/11 - feat: observador abstrato de voo
+- 9c7a513 - 09/11 - feat: VooService avisa observadores ao cancelar voo
+- 4854e41 - 09/11 - test: observadores avisados ao cancelar voo
+- 7bdf72d - 09/11 - feat: observador que cancela as reservas do voo
+- 3abb7b1 - 09/11 - feat: cancelar voo pela api cancela as reservas
+- a55f59a - 10/11 - docs: padrao observer do voo
+
+#### Decisão: o aviso sai depois do commit do voo
+2026-11-09
+
+Decidi que o `VooService` só avisa os observadores depois de gravar o cancelamento no banco. Se o aviso viesse antes, uma reserva poderia ser cancelada por causa de um voo que, no fim, não foi cancelado, e o teste `test_cancelamento_recusado_nao_avisa_ninguem` garante que isso não acontece. O lado ruim é que, se o observador falhar no meio, o voo fica cancelado e parte das reservas continua confirmada. Para evitar isso, eu teria de gravar o voo e as reservas numa transação só, o que obrigaria a tirar o commit de dentro dos repositórios da Reserva. Preferi manter cada agregado gravado separadamente, como já tinha decidido na fase 1, quando não deixei a reserva alocar o assento para não mudar dois agregados na mesma transação.
+
+#### Uso de IA
+
+Neste checkpoint, o Claude me acompanhou da escolha do padrão até a documentação. Discuti com ele os padrões possíveis, inclusive os que ficariam ruins no Voo, e decidi pelo Observer, cuja aplicabilidade correspondia ao problema do cancelamento. Depois, ajustei alguns testes e a formatação dos arquivos .md, conferindo cada parte e rodando a suíte antes de cada commit.
