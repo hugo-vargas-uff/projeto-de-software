@@ -89,3 +89,33 @@ def test_aeronave_so_esta_disponivel_quando_todas_as_regras_permitem():
 
     # a vistoria venceu, mesmo sem nenhuma ordem pendente
     assert aeronave.esta_disponivel(HOJE) is False
+
+
+# --- uma regra nova entra sem editar a Aeronave
+
+
+class ForaDosDiasBloqueados(RegraDisponibilidade):
+    """Regra que so existe no teste: a aeronave fica reservada em certos dias."""
+
+    def __init__(self, dias_bloqueados):
+        self.dias_bloqueados = set(dias_bloqueados)
+
+    def permite_voo(self, aeronave, hoje) -> bool:
+        return hoje not in self.dias_bloqueados
+
+
+def test_regra_nova_entra_na_aeronave_sem_editar_a_classe():
+    regras = [VistoriaValida(), SemManutencaoPendente(), ForaDosDiasBloqueados([HOJE])]
+    aeronave = nova_aeronave(regras=regras)
+
+    # vistoria em dia e sem ordens, mas hoje e um dia bloqueado
+    assert aeronave.esta_disponivel(HOJE) is False
+    assert aeronave.esta_disponivel(date(2026, 11, 10)) is True
+
+
+def test_aeronave_aplica_so_as_regras_recebidas():
+    aeronave = nova_aeronave(regras=[VistoriaValida()])
+    aeronave.abrir_ordem_manutencao("Revisao do motor")
+
+    # sem a regra de manutencao na lista, a ordem pendente nao bloqueia
+    assert aeronave.esta_disponivel(HOJE) is True
