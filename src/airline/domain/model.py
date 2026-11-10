@@ -1,4 +1,5 @@
 import uuid, re
+from abc import ABC, abstractmethod
 from enum import Enum
 
 from airline.domain.exception import TipoCpfInvalidoException, CpfInvalidoException
@@ -122,19 +123,43 @@ class Voo:
 
 # Agregado Aeronave
 
+class RegraDisponibilidade(ABC):
+    """Estrategia: uma razao que pode impedir a aeronave de voar."""
+
+    @abstractmethod
+    def permite_voo(self, aeronave, hoje) -> bool:
+        ...
+
+
+class VistoriaValida(RegraDisponibilidade):
+    def permite_voo(self, aeronave, hoje) -> bool:
+        return aeronave.validade_vistoria >= hoje
+
+
+class SemManutencaoPendente(RegraDisponibilidade):
+    def permite_voo(self, aeronave, hoje) -> bool:
+        return not any(
+            ordem.status == StatusOrdemManutencao.PENDENTE
+            for ordem in aeronave.ordens_manutencao
+        )
+
+
 class Aeronave:
     def __init__(
         self,
         prefixo: str,
         modelo: str,
         capacidade: int,
-        validade_vistoria
+        validade_vistoria,
+        regras=None
     ):
         self.prefixo = prefixo
         self.modelo = modelo
         self.capacidade = capacidade
         self.validade_vistoria = validade_vistoria
         self.ordens_manutencao = []
+        # estrategias de disponibilidade; sem regras explicitas, valem as duas da proposta
+        self.regras = regras if regras is not None else [VistoriaValida(), SemManutencaoPendente()]
 
     def __eq__(self, outra):
         if not isinstance(outra, Aeronave):
@@ -154,14 +179,7 @@ class Aeronave:
         ordem.concluir()
 
     def esta_disponivel(self, hoje):
-        vistoria_valida = self.validade_vistoria >= hoje
-
-        possui_manutencao_pendente = any(
-            ordem.status == StatusOrdemManutencao.PENDENTE
-            for ordem in self.ordens_manutencao
-        )
-
-        return vistoria_valida and not possui_manutencao_pendente
+        return all(regra.permite_voo(self, hoje) for regra in self.regras)
 
     
 class StatusOrdemManutencao(Enum):
