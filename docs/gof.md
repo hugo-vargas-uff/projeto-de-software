@@ -112,6 +112,73 @@ Esse custo é amplamente compensado pela clareza arquitetural: a entidade `Escal
 
 ## Voo, Matheus Verdan
 
+### Padrão: Observer (Comportamental)
+
+### 1. Contexto no sistema e problema que ele resolve
+
+Desde a fase 1, cancelar um voo só mudava o status dele, e as reservas daquele voo continuavam confirmadas. Registrei essa limitação no DECISIONS em 29/09 e não resolvi na época porque avisar a Reserva de dentro do Voo misturaria os dois agregados. Para a companhia, isso significa passageiros com reserva confirmada num voo que não vai acontecer. A Reserva também não é a única parte do sistema ligada ao voo, porque a Escala e o Despacho guardam o `voo_id` e podem precisar reagir ao cancelamento no futuro.
+
+### 2. Por que esse padrão e alternativas consideradas
+
+O Observer permite que um objeto avise outros quando algo acontece com ele, sem saber quem são nem quantos são. No projeto, o `VooService` cancela o voo, confirma a mudança no banco e depois avisa os observadores inscritos, e cada um decide o que fazer com o aviso. Assim, o serviço do voo não conhece a Reserva, e uma reação nova, como liberar a escala, entra como uma classe nova, sem mudar o `cancelar_voo`.
+
+A primeira alternativa que considerei foi chamar o repositório da Reserva direto no `cancelar_voo`. Isso daria menos código, mas faria o `VooService` depender da Reserva e obrigaria a editar esse método a cada reação nova, justamente o problema de Aberto/Fechado que corrigi no checkpoint 2. Também pensei em guardar a lista de observadores na entidade `Voo`, como costuma aparecer nos exemplos do padrão, mas preferi deixar no serviço, porque assim o domínio continua sem depender de outros agregados e o aviso só sai depois que o serviço grava o cancelamento no banco.
+
+### 3. Participantes do padrão mapeados para classes reais
+
+| Papel no padrão | Classe | O que faz no projeto | Arquivo |
+|---|---|---|---|
+| Subject e ConcreteSubject | `VooService` | Guarda a lista de observadores, oferece o `inscrever` e avisa todos no fim do `cancelar_voo` | `src/airline/service_layer/services.py` |
+| Observer | `ObservadorDeVoo` | Classe abstrata que define o método `voo_cancelado` | `src/airline/service_layer/observadores_voo.py` |
+| ConcreteObserver | `CancelaReservasDoVoo` | Cancela as reservas confirmadas do voo que foi cancelado | `src/airline/service_layer/observadores_voo.py` |
+
+Não criei uma classe abstrata para o sujeito porque só o `VooService` avisa observadores, e por isso ele acumula os papéis de Subject e de ConcreteSubject. A função `montar_voo_service`, no `flask_app.py`, já montava o serviço com os repositórios reais e agora também inscreve nele o `CancelaReservasDoVoo`.
+
+Para o observador funcionar, o repositório da Reserva ganhou o método `listar_por_voo`, e o `salvar` passou a atualizar uma reserva que já existe em vez de tentar inseri-la de novo, o que antes falhava com `IntegrityError`. Pedi essas duas mudanças ao Hugo, responsável pela Reserva, e ele as fez nos commits `f8a31c6` e `bbbdf5e`.
+
+### 4. Diagrama de classes
+
+```mermaid
+classDiagram
+    class VooService {
+        <<Subject>>
+        +list observadores
+        +inscrever(observador)
+        +cancelar_voo(numero_voo)
+    }
+    class ObservadorDeVoo {
+        <<Observer>>
+        +voo_cancelado(numero_voo)*
+    }
+    class CancelaReservasDoVoo {
+        <<ConcreteObserver>>
+        +ReservaRepository reserva_repository
+        +voo_cancelado(numero_voo)
+    }
+    class ReservaRepository {
+        <<abstract>>
+        +listar_por_voo(voo_id)
+        +salvar(reserva)
+    }
+    VooService "1" o-- "*" ObservadorDeVoo : avisa
+    ObservadorDeVoo <|-- CancelaReservasDoVoo : implementa
+    CancelaReservasDoVoo --> ReservaRepository : lista e salva reservas
+```
+
+### 5. Testes
+
+Os testes de unidade do padrão ficam em `tests/unit/service_layer/test_observadores_voo.py` e entraram nos commits `4854e41` e `7bdf72d`.
+
+- `test_cancelar_voo_avisa_todos_os_observadores` inscreve dois observadores de teste, que só anotam os voos recebidos, e confere que os dois receberam o número do voo.
+- `test_cancelamento_recusado_nao_avisa_ninguem` tenta cancelar um voo já realizado e confere que nenhum observador foi avisado.
+- `test_cancela_so_as_reservas_confirmadas_do_voo` usa o repositório falso da Reserva e confere que só as reservas do voo cancelado mudaram de status.
+
+O teste ponta a ponta `test_cancelar_voo_cancela_as_reservas_pela_api`, em `tests/e2e/test_api_voo.py` (commit `3abb7b1`), agenda um voo, cria um passageiro com uma reserva, cancela o voo pela API e confere que a reserva ficou CANCELADA. Em 10/11, a suíte inteira passou com 189 testes.
+
+### 6. Custo da aplicação do padrão
+
+O padrão trouxe uma classe abstrata, uma classe concreta e uma lista no `VooService`. Quem lê o `cancelar_voo` não vê mais o que acontece depois do cancelamento e precisa olhar o `montar_voo_service` para saber quem reage a ele. Além disso, o aviso sai depois do commit do voo e cada reserva é gravada pelo próprio repositório, então, se o observador falhar no meio, o voo fica cancelado e parte das reservas continua confirmada, sem nova tentativa. Compensa porque o Voo e a Reserva continuam separados e as próximas reações ao cancelamento entram como classes novas, sem alterar o que já está testado.
+
 ## Aeronave, Matheus Andrade
 
 ## Reserva e Passageiro, Hugo Vargas
