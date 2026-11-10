@@ -68,3 +68,17 @@ def test_alocar_assento_ate_lotar_pela_api(client, session_factory):
     resposta = client.post("/voos/MV-300/assentos")
     assert resposta.status_code == 400
     assert "mensagem" in resposta.get_json()
+
+def test_cancelar_voo_cancela_as_reservas_pela_api(client, session_factory):
+    cadastrar_aeronave(session_factory)
+    agendar(client, "MV-400")
+    passageiro = client.post("/passageiros", json={"nome": "Ana", "cpf": "717.774.400-25"}).get_json()
+    client.post("/reservas", json={"voo_id": "MV-400", "passageiro_id": passageiro["id"]})
+
+    resposta = client.post("/voos/MV-400/cancelar")
+    assert resposta.status_code == 200
+
+    #a reserva foi cancelada junto com o voo
+    resposta = client.get(f"/reservas/MV-400/{passageiro['id']}")
+    assert resposta.status_code == 200
+    assert resposta.get_json()["status"] == "CANCELADA"

@@ -13,6 +13,7 @@ from datetime import date
 from airline.adapters.repository import SqlAlchemyVooRepository, SqlAlchemyAeronaveRepository
 from airline.service_layer.services import VooService, AeronaveService
 from airline.domain.model import ErroRegraVoo
+from airline.service_layer.observadores_voo import CancelaReservasDoVoo
 from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveJaExiste, \
     AeronaveIndisponivel, \
     PassageiroNaoEncontrado, CpfJaCadastradoException, CpfInvalidoException
@@ -184,11 +185,15 @@ def consultar_despacho(despacho_id):
 # voo
 def montar_voo_service(session):
     # liga as pecas reais: repositorios SQLAlchemy usando a mesma sessao que o servico vai confirmar
-    return VooService(
+    servico = VooService(
         SqlAlchemyVooRepository(session),
         SqlAlchemyAeronaveRepository(session),
         session,
     )
+    #quem precisa saber quando um voo e cancelado
+    servico.inscrever(CancelaReservasDoVoo(SqlAlchemyReservaRepository(session)))
+    return servico
+
 
 def montar_aeronave_service(session):
     repository = SqlAlchemyAeronaveRepository(session)
