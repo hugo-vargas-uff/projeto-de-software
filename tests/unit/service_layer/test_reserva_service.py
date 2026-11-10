@@ -1,7 +1,7 @@
 from airline.domain.model import Reserva, Passageiro, StatusReserva, Trecho, Voo, CPF
 from airline.service_layer.services import ReservaService
 from airline.service_layer.services import ReservaRepository
-from airline.domain.exception import PassageiroNaoEncontrado
+from airline.domain.exception import PassageiroNaoEncontrado, VooNaoEncontrado
 from test_passageiro_service import FakePassageiroRepository
 from test_voo_service import FakeVooRepository
 
@@ -27,7 +27,7 @@ class FakeReservaRepository(ReservaRepository):
             if reserva.voo_id == voo_id
             and reserva.status == StatusReserva.CONFIRMADA
         )
-    
+
     def listar_por_voo(self, voo_id):
         return [reserva for reserva in self.reservas.values() if reserva.voo_id == voo_id]
 
@@ -143,3 +143,24 @@ def test_lanca_excecao_tentando_criar_reserva_sem_passageiro():
 
     with pytest.raises(PassageiroNaoEncontrado, match="Passageiro nao encontrado"):
         service.criar_reserva(voo_id="voo-123", passageiro_id="ID-NAO-EXISTENTE")
+
+def test_lanca_excecao_tentando_criar_reserva_sem_voo():
+    reserva_repository = FakeReservaRepository()
+    passageiro_repository = FakePassageiroRepository()
+    voo_repository = FakeVooRepository()
+
+    service = ReservaService(
+        reserva_repository,
+        passageiro_repository,
+        voo_repository
+    )
+
+    passageiro = Passageiro(nome="Pedro",cpf=CPF("717.774.400-25"))
+
+    passageiro_repository.salvar(passageiro)
+
+    with pytest.raises(VooNaoEncontrado, match="Voo nao encontrado"):
+        service.criar_reserva(
+            voo_id="voo-inexistente",
+            passageiro_id=passageiro.id
+        )
