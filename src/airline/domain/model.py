@@ -202,9 +202,45 @@ class OrdemManutencao:
 class ErroRegraDespacho(Exception):
     pass
 
+# Composite: o despacho trata volume solto e conteiner (ULD) do mesmo jeito
+class ItemDespacho(ABC):
+    @abstractmethod
+    def peso_total(self) -> float:
+        pass
+
+    @abstractmethod
+    def quantidade_volumes(self) -> int:
+        pass
+
+
 @dataclass(frozen=True)
-class Volume:
+class Volume(ItemDespacho):
     peso: float
+
+    def peso_total(self) -> float:
+        return self.peso
+
+    def quantidade_volumes(self) -> int:
+        return 1
+
+
+@dataclass(frozen=True)
+class Conteiner(ItemDespacho):
+    # o peso do conteiner e a tara dele mais o peso de tudo que vai dentro
+    codigo: str
+    tara: float
+    itens: tuple = ()
+
+    def __post_init__(self):
+        # tupla para ninguem colocar volume no conteiner depois que ele entrou no despacho
+        object.__setattr__(self, "itens", tuple(self.itens))
+
+    def peso_total(self) -> float:
+        return self.tara + sum(item.peso_total() for item in self.itens)
+
+    def quantidade_volumes(self) -> int:
+        return sum(item.quantidade_volumes() for item in self.itens)
+
 
 class Despacho:
     def __init__(self, voo_id: str, carga_maxima: float):
@@ -213,18 +249,21 @@ class Despacho:
         self.carga_maxima = carga_maxima
         self.volumes = []
 
-    def adicionar_volume(self, volume):
-        novo_peso = self.peso_total() + volume.peso
+    def adicionar_volume(self, item: ItemDespacho):
+        novo_peso = self.peso_total() + item.peso_total()
 
         if novo_peso > self.carga_maxima:
             raise ErroRegraDespacho(
                 "Peso total dos volumes ultrapassa a carga maxima do despacho"
             )
 
-        self.volumes.append(volume)
+        self.volumes.append(item)
 
     def peso_total(self):
-        return sum(volume.peso for volume in self.volumes)
+        return sum(item.peso_total() for item in self.volumes)
+
+    def quantidade_volumes(self):
+        return sum(item.quantidade_volumes() for item in self.volumes)
 
     def peso_disponivel(self):
         return self.carga_maxima - self.peso_total()
