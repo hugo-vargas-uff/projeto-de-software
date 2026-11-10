@@ -20,9 +20,10 @@ from airline.domain.model import Voo, Trecho
 from airline.domain.repositories import VooRepository
 from airline.domain.exception import VooJaExiste, VooNaoEncontrado, AeronaveNaoEncontrada, AeronaveIndisponivel
 from airline.service_layer.observadores_voo import ObservadorDeVoo
+from airline.service_layer.reserva_handlers import (VerificarPassageiroHandler,VerificarVooHandler)
+
 
 class ReservaService:
-
     def __init__(
         self,
         reserva_repository: ReservaRepository,
@@ -33,29 +34,38 @@ class ReservaService:
         self.passageiro_repository = passageiro_repository
         self.voo_repository = voo_repository
 
+        self._configurar_validacoes()
+
+    def _configurar_validacoes(self):
+        passageiro_handler = VerificarPassageiroHandler(self.passageiro_repository)
+
+        voo_handler = VerificarVooHandler(self.voo_repository)
+
+        passageiro_handler.definir_proximo(voo_handler)
+
+        self.reserva_validation_handler = passageiro_handler
+
+    def _validar_reserva(self, voo_id, passageiro_id):
+        self.reserva_validation_handler.validar(voo_id,passageiro_id)
+
     def criar_reserva(self, voo_id, passageiro_id):
+        self._validar_reserva(voo_id, passageiro_id)
 
-        if self.passageiro_repository.buscar_por_id(passageiro_id) is None:
-            raise PassageiroNaoEncontrado("Passageiro nao encontrado")
-
-        if self.voo_repository.buscar(voo_id) is None:
-            raise VooNaoEncontrado("Voo nao encontrado")
-
-        reserva = Reserva(voo_id=voo_id,passageiro_id=passageiro_id)
+        reserva = Reserva(
+            voo_id=voo_id,
+            passageiro_id=passageiro_id
+        )
 
         self.reserva_repository.salvar(reserva)
-
         return reserva
 
     def buscar(self, voo_id, passageiro_id):
+        self._validar_reserva(voo_id, passageiro_id)
 
-        if self.passageiro_repository.buscar_por_id(passageiro_id) is None:
-            raise PassageiroNaoEncontrado("Passageiro nao encontrado")
-
-        if self.voo_repository.buscar(voo_id) is None:
-            raise VooNaoEncontrado("Voo nao encontrado")
-
-        reserva = self.reserva_repository.buscar(voo_id, passageiro_id)
+        reserva = self.reserva_repository.buscar(
+            voo_id,
+            passageiro_id
+        )
 
         if reserva is None:
             raise ReservaNaoEncontrada("Reserva nao encontrada")
