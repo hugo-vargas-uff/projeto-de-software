@@ -208,7 +208,7 @@ class AeronaveService:
 
 # --- Serviço de Despacho
 
-from airline.domain.model import Despacho, Volume, ErroRegraDespacho
+from airline.domain.model import Despacho, Volume, Conteiner, ErroRegraDespacho
 from airline.domain.repositories import DespachoRepository
 from airline.domain.exception import DespachoNaoEncontrado
 
@@ -229,6 +229,18 @@ class DespachoService:
     def adicionar_volume(self, despacho_id, peso):
         despacho = self.consultar_despacho(despacho_id)
         despacho.adicionar_volume(Volume(peso=peso))
+        self.despacho_repository.salvar(despacho)
+        return despacho
+
+    def adicionar_conteiner(self, despacho_id, codigo, tara, pesos_volumes):
+        despacho = self.consultar_despacho(despacho_id)
+        conteiner = Conteiner(
+            codigo=codigo,
+            tara=tara,
+            itens=[Volume(peso=peso) for peso in pesos_volumes]
+        )
+        # o despacho recebe o conteiner pelo mesmo metodo do volume solto
+        despacho.adicionar_volume(conteiner)
         self.despacho_repository.salvar(despacho)
         return despacho
 

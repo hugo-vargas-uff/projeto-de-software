@@ -142,3 +142,38 @@ def test_api_erro_ao_consultar_despacho_inexistente(client):
     response = client.get(f"/despachos/{uuid.uuid4()}")
 
     assert response.status_code == 404
+
+
+def test_api_deve_adicionar_conteiner_no_despacho(client):
+    resp_d = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 1000})
+    despacho_id = resp_d.get_json()["id"]
+    client.post(f"/despachos/{despacho_id}/volumes", json={"peso": 100})
+
+    response = client.post(f"/despachos/{despacho_id}/conteineres", json={
+        "codigo": "AKE12345AA",
+        "tara": 80,
+        "volumes": [23, 32]
+    })
+
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data["peso_total"] == 235
+    assert data["quantidade_volumes"] == 3
+
+    consulta = client.get(f"/despachos/{despacho_id}").get_json()
+    assert consulta["volumes"] == [100, 135]
+    assert consulta["peso_disponivel"] == 765
+
+
+def test_api_erro_quando_tara_do_conteiner_passa_da_carga_maxima(client):
+    resp_d = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 200})
+    despacho_id = resp_d.get_json()["id"]
+
+    response = client.post(f"/despachos/{despacho_id}/conteineres", json={
+        "codigo": "AKE12345AA",
+        "tara": 80,
+        "volumes": [100, 50]
+    })
+
+    assert response.status_code == 400
+    assert "ultrapassa a carga maxima do despacho" in response.get_json()["mensagem"]

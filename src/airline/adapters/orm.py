@@ -204,17 +204,50 @@ class EscalaModel(Base):
 
 # --- Despacho
 
-from airline.domain.model import Despacho, Volume
+from airline.domain.model import Despacho, Volume, Conteiner
 
 
 class VolumeDespachoModel(Base):
+    # guarda a arvore do Composite numa tabela so: cada linha aponta para o conteiner pai
     __tablename__ = "despacho_volumes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     despacho_id = Column(String, ForeignKey("despachos.id"), nullable=False)
-    peso = Column(Float, nullable=False)
+    tipo = Column(String(10), nullable=False, default="VOLUME", server_default="VOLUME")
+    codigo = Column(String(20), nullable=True)
+    peso = Column(Float, nullable=False)  # no conteiner, guarda a tara
+    pai_id = Column(Integer, ForeignKey("despacho_volumes.id"), nullable=True)
 
     despacho = relationship("DespachoModel", back_populates="volumes")
+    pai = relationship("VolumeDespachoModel", remote_side=[id])
+
+
+def itens_para_models(itens, pai=None):
+    models = []
+    for item in itens:
+        if isinstance(item, Conteiner):
+            model = VolumeDespachoModel(tipo="CONTEINER", codigo=item.codigo, peso=item.tara, pai=pai)
+            models.append(model)
+            models.extend(itens_para_models(item.itens, pai=model))
+        else:
+            models.append(VolumeDespachoModel(tipo="VOLUME", peso=item.peso, pai=pai))
+    return models
+
+
+def models_para_itens(linhas, pai_id=None):
+    itens = []
+    for linha in linhas:
+        if linha.pai_id != pai_id:
+            continue
+        if linha.tipo == "CONTEINER":
+            itens.append(Conteiner(
+                codigo=linha.codigo,
+                tara=linha.peso,
+                itens=models_para_itens(linhas, pai_id=linha.id)
+            ))
+        else:
+            itens.append(Volume(peso=linha.peso))
+    return itens
 
 
 class DespachoModel(Base):
@@ -227,7 +260,8 @@ class DespachoModel(Base):
     volumes = relationship(
         "VolumeDespachoModel",
         back_populates="despacho",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        order_by="VolumeDespachoModel.id"
     )
 
     @classmethod
@@ -237,8 +271,7 @@ class DespachoModel(Base):
             voo_id=despacho.voo_id,
             carga_maxima=despacho.carga_maxima
         )
-        for volume in despacho.volumes:
-            model.volumes.append(VolumeDespachoModel(peso=volume.peso))
+        model.volumes.extend(itens_para_models(despacho.volumes))
         return model
 
     def to_domain(self):
@@ -246,5 +279,5 @@ class DespachoModel(Base):
             id=uuid.UUID(str(self.id)),
             voo_id=self.voo_id,
             carga_maxima=self.carga_maxima,
-            volumes=[Volume(peso=v.peso) for v in self.volumes]
+            volumes=models_para_itens(self.volumes)
         )

@@ -161,6 +161,36 @@ def adicionar_volume(despacho_id):
         return jsonify({"mensagem": str(e)}), 400
 
 
+@app.route("/despachos/<despacho_id>/conteineres", methods=["POST"])
+def adicionar_conteiner(despacho_id):
+    data = request.get_json()
+    session = SessionFactory()
+    repo = SqlAlchemyDespachoRepository(session)
+    service = DespachoService(repo)
+
+    try:
+        despacho = service.adicionar_conteiner(
+            uuid.UUID(despacho_id),
+            codigo=data["codigo"],
+            tara=float(data["tara"]),
+            pesos_volumes=[float(peso) for peso in data.get("volumes", [])]
+        )
+        return jsonify({
+            "id": str(despacho.id),
+            "voo_id": despacho.voo_id,
+            "carga_maxima": despacho.carga_maxima,
+            "quantidade_volumes": despacho.quantidade_volumes(),
+            "peso_total": despacho.peso_total(),
+            "peso_disponivel": despacho.peso_disponivel()
+        }), 201
+    except DespachoNaoEncontrado as e:
+        return jsonify({"mensagem": str(e)}), 404
+    except ErroRegraDespacho as e:
+        return jsonify({"mensagem": str(e)}), 400
+    finally:
+        session.close()
+
+
 @app.route("/despachos/<despacho_id>", methods=["GET"])
 def consultar_despacho(despacho_id):
     session = SessionFactory()
@@ -176,7 +206,9 @@ def consultar_despacho(despacho_id):
         "id": str(despacho.id),
         "voo_id": despacho.voo_id,
         "carga_maxima": despacho.carga_maxima,
-        "volumes": [volume.peso for volume in despacho.volumes],
+        # volume solto ou conteiner, cada item informa o proprio peso total
+        "volumes": [item.peso_total() for item in despacho.volumes],
+        "quantidade_volumes": despacho.quantidade_volumes(),
         "peso_total": despacho.peso_total(),
         "peso_disponivel": despacho.peso_disponivel()
     }), 200

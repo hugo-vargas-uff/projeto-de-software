@@ -125,3 +125,36 @@ def test_consultar_peso_disponivel_de_despacho_inexistente():
 
     with pytest.raises(DespachoNaoEncontrado):
         service.consultar_peso_disponivel(uuid.uuid4())
+
+
+def test_adicionar_conteiner_com_volumes():
+    repo = FakeDespachoRepository()
+    service = DespachoService(repo)
+
+    despacho = service.abrir_despacho(voo_id="MV-3000", carga_maxima=1000)
+    service.adicionar_volume(despacho.id, peso=100)
+    service.adicionar_conteiner(despacho.id, codigo="AKE12345AA", tara=80, pesos_volumes=[23, 32])
+
+    encontrado = repo.buscar_por_id(despacho.id)
+    assert encontrado.peso_total() == 100 + 80 + 23 + 32
+    assert encontrado.quantidade_volumes() == 3
+
+
+def test_adicionar_conteiner_acima_da_carga_maxima():
+    repo = FakeDespachoRepository()
+    service = DespachoService(repo)
+
+    despacho = service.abrir_despacho(voo_id="MV-3000", carga_maxima=200)
+
+    with pytest.raises(ErroRegraDespacho):
+        service.adicionar_conteiner(despacho.id, codigo="AKE12345AA", tara=80, pesos_volumes=[100, 50])
+
+    assert repo.buscar_por_id(despacho.id).peso_total() == 0
+
+
+def test_adicionar_conteiner_em_despacho_inexistente():
+    repo = FakeDespachoRepository()
+    service = DespachoService(repo)
+
+    with pytest.raises(DespachoNaoEncontrado):
+        service.adicionar_conteiner(uuid.uuid4(), codigo="AKE12345AA", tara=80, pesos_volumes=[20])

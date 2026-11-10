@@ -854,3 +854,36 @@ Decidi utilizar o padrão State em vez de manter uma variável com enum e dezena
 2026-11-10
 
 Utilizei o assistente de IA generativa para auxiliar na modelagem do diagrama de classes em sintaxe Mermaid, na revisão da documentação dos participantes do padrão em `docs/gof.md` e na validação dos comandos do terminal Git. Toda a lógica de negócios, classes de estado, exceções de domínio e testes foram implementados e validados por mim no repositório.
+
+### Vinicius Duarte (@DEVinicius-jpeg) — Agregado Despacho
+
+#### O que eu fiz
+
+- Apliquei o padrão Composite no agregado Despacho para representar contêineres de carga (ULD). Criei a interface `ItemDespacho`; o `Volume` virou a folha e o novo `Conteiner` virou o composto, com código, tara e itens. O `Despacho` passou a somar o peso pela interface comum, então a tara do contêiner agora conta na carga máxima.
+- Levei o padrão até o banco e a API:
+  - a tabela `despacho_volumes` ganhou as colunas `tipo`, `codigo` e `pai_id` para guardar a árvore;
+  - o `DespachoService` ganhou o caso de uso `adicionar_conteiner`;
+  - a API ganhou a rota `POST /despachos/<id>/conteineres`.
+- Escrevi testes de domínio, de serviço, de integração e e2e para o padrão, e a seção do Despacho em `docs/gof.md`, com o diagrama de classes em Mermaid.
+
+Arquivos: `src/airline/domain/model.py`, `src/airline/adapters/orm.py`, `src/airline/adapters/repository.py`, `src/airline/service_layer/services.py`, `src/airline/entrypoints/flask_app.py`, `tests/unit/domain/test_despacho.py`, `tests/unit/service_layer/test_despacho_service.py`, `tests/integration/adapter/test_SqlAlchemyDespachoRepository.py`, `tests/e2e/test_api.py`, `docs/gof.md`, `DECISIONS.md`
+
+Commits:
+- `2954816` — 09/11 — feat: aplica o padrao Composite no Despacho com Volume e Conteiner
+- `<hash>` — 10/11 — feat: persiste e expoe conteineres do despacho e documenta o Composite
+
+#### Decisão: o Conteiner é imutável
+
+2026-11-09
+
+Fiz o `Conteiner` como `dataclass(frozen=True)`, com os itens numa tupla. Se desse para pôr um volume num contêiner que já está no despacho, o peso subiria sem passar por `Despacho.adicionar_volume` e a carga máxima poderia ser ultrapassada por fora da raiz do agregado. Para mudar um contêiner, é preciso montar um novo.
+
+#### Decisão: a árvore numa tabela só, com `pai_id`
+
+2026-11-10
+
+Para persistir, considerei uma tabela separada para contêineres, mas isso exigiria juntar duas tabelas para remontar a ordem dos itens e não resolveria o contêiner dentro de outro contêiner. Mantive a `despacho_volumes` e acrescentei `tipo`, `codigo` e `pai_id`. O `server_default='VOLUME'` deixa as linhas antigas e os testes que inserem só o peso funcionando sem alteração.
+
+#### Uso de IA
+
+Usei o Claude Code (assistente de IA da Anthropic, dentro do VS Code) neste checkpoint. Informei os padrões que os colegas já tinham escolhido (State, Strategy e Observer) e pedi uma sugestão para o Despacho. A IA leu o código do agregado e dos colegas para não repetir padrão nem estilo, sugeriu o Composite, escreveu a implementação, os testes, a seção do `gof.md` e a primeira versão desta subseção, e rodou a suíte de testes. Eu revisei o código e os textos, conferi que os testes antigos do Despacho continuam passando e fiz os commits. A responsabilidade pelo resultado é minha.

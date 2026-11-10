@@ -299,3 +299,117 @@ Essa estrutura exige maior esforço de manutenção e testes em comparação com
 Como o fluxo atual possui somente duas validações, o CoR introduz uma complexidade adicional que não seria necessária em uma solução mais simples. Em contrapartida, separa as responsabilidades de validação e facilita a inclusão de novos handlers independentes.
 
 ## Despacho, Vinicius Duarte
+
+### Padrão: Composite (estrutural)
+
+### Contexto e problema
+
+O Despacho controla o peso embarcado num voo e não deixa passar da `carga_maxima` (ADR 0005). Na Fase 1 ele só conhecia uma lista plana de `Volume`, cada um com seu peso.
+
+Na prática, bagagem e carga quase nunca vão soltas no porão. Elas são agrupadas em contêineres (os ULD, como o AKE, um contêiner de bagagem, ou o PMC, um palete). O contêiner tem um código, tem peso próprio (a tara, perto de 80 kg num AKE) e pode levar volumes ou até outros contêineres, quando vários AKE vão presos num palete.
+
+Com o modelo antigo, havia dois problemas:
+
+- **A tara não era contada.** Para registrar um contêiner, o funcionário teria de lançar os volumes um a um, e o peso do próprio contêiner ficava de fora da conta da carga máxima. Um despacho podia parecer dentro do limite e não estar. O teste `test_tara_do_conteiner_conta_na_carga_maxima` mostra o caso: volumes de 150 kg num despacho de 200 kg passam, mas com a tara de 80 kg não.
+- **O Despacho teria de saber de cada tipo de item.** Sem um tipo comum, `adicionar_volume` e `peso_total` precisariam de um `if` para volume, outro para contêiner, e um laço para contêiner dentro de contêiner.
+
+### Por que Composite
+
+O Composite deixa o Despacho tratar uma peça e um grupo de peças pela mesma interface. Tanto o `Volume` quanto o `Conteiner` sabem responder `peso_total()` e `quantidade_volumes()`. O contêiner calcula o seu somando a tara com o que ele tem dentro, e não precisa saber se o que tem dentro é volume ou outro contêiner. Com isso, a regra da carga máxima em `Despacho.adicionar_volume` não mudou: ela continua comparando `peso_total()` com a `carga_maxima`, só que agora o peso de um contêiner inteiro entra de uma vez.
+
+**Alternativas consideradas:**
+
+- **Guardar a tara como um volume a mais.** Seria a mudança mínima: lançar um `Volume(peso=80)` para cada contêiner. Descartei porque a tara deixaria de ser identificável (não daria para saber de qual contêiner é), a `quantidade_volumes` contaria contêiner como volume e não haveria como representar um contêiner dentro de um palete.
+- **Um campo `conteiner` em cada `Volume`.** Cada volume diria em qual contêiner está, e o Despacho agruparia na hora de somar. Descartei porque o Despacho teria de montar os grupos a cada cálculo, a tara precisaria morar em outro lugar e o aninhamento (contêiner em palete) ficaria sem representação.
+- **Decorator.** Também é estrutural e também tem a mesma interface do objeto embrulhado, mas ele acrescenta comportamento a *um* objeto. Aqui o problema é juntar *vários* itens num só, que é o caso do Composite.
+
+### Participantes
+
+| Papel no padrão | Classe no código | Onde está |
+|---|---|---|
+| Component | `ItemDespacho` (ABC, com `peso_total()` e `quantidade_volumes()`) | `src/airline/domain/model.py` |
+| Leaf | `Volume` (objeto de valor, `frozen=True`): o peso total é o próprio peso e conta 1 volume | `src/airline/domain/model.py` |
+| Composite | `Conteiner` (objeto de valor, `frozen=True`, com `codigo`, `tara` e `itens`): soma a tara com o peso de cada item e repassa a contagem para os filhos | `src/airline/domain/model.py` |
+| Client | `Despacho`: guarda uma lista de `ItemDespacho` e usa só a interface comum em `adicionar_volume`, `peso_total` e `quantidade_volumes` | `src/airline/domain/model.py` |
+
+Fora do domínio, o padrão aparece em mais dois lugares:
+
+- `DespachoService.adicionar_conteiner` monta o `Conteiner` e entrega ao Despacho pelo mesmo `adicionar_volume` do volume solto.
+- No banco, a árvore fica na tabela `despacho_volumes`, com as colunas `tipo` (`VOLUME` ou `CONTEINER`), `codigo` e `pai_id`, que aponta para o contêiner onde o item está. A conversão é feita por `itens_para_models` e `models_para_itens`, em `src/airline/adapters/orm.py`. Na linha de um contêiner, a coluna `peso` guarda a tara.
+
+O `Conteiner` é imutável: os itens viram uma tupla na criação. Decidi assim porque, se fosse possível colocar um volume num contêiner que já está no despacho, o peso aumentaria sem passar por `Despacho.adicionar_volume`, e a invariante da carga máxima seria furada por fora da raiz.
+
+### Diagrama de classes
+
+```mermaid
+classDiagram
+    direction LR
+
+    class ItemDespacho {
+        <<Component>>
+        +peso_total() float
+        +quantidade_volumes() int
+    }
+
+    class Volume {
+        <<Leaf>>
+        +peso: float
+        +peso_total() float
+        +quantidade_volumes() int
+    }
+
+    class Conteiner {
+        <<Composite>>
+        +codigo: str
+        +tara: float
+        +itens: tuple
+        +peso_total() float
+        +quantidade_volumes() int
+    }
+
+    class Despacho {
+        <<Client>>
+        +id: UUID
+        +voo_id: str
+        +carga_maxima: float
+        +volumes: list
+        +adicionar_volume(item: ItemDespacho)
+        +peso_total() float
+        +peso_disponivel() float
+        +quantidade_volumes() int
+    }
+
+    ItemDespacho <|-- Volume
+    ItemDespacho <|-- Conteiner
+    Conteiner o-- "0..*" ItemDespacho : itens
+    Despacho o-- "0..*" ItemDespacho : volumes
+```
+
+### Testes
+
+- `tests/unit/domain/test_despacho.py` exercita o padrão direto no domínio:
+  - `test_peso_do_conteiner_soma_a_tara_e_os_volumes`
+  - `test_conteiner_vazio_pesa_so_a_tara`
+  - `test_conteiner_dentro_de_conteiner_soma_recursivamente`: palete com dois AKE e um volume solto
+  - `test_despacho_trata_volume_e_conteiner_do_mesmo_jeito`
+  - `test_tara_do_conteiner_conta_na_carga_maxima`
+  - `test_conteiner_nao_aceita_volume_depois_de_criado`
+- `tests/unit/service_layer/test_despacho_service.py`: `test_adicionar_conteiner_com_volumes`, `test_adicionar_conteiner_acima_da_carga_maxima` e `test_adicionar_conteiner_em_despacho_inexistente`, com o repositório falso.
+- `tests/integration/adapter/test_SqlAlchemyDespachoRepository.py`:
+  - `test_salvar_despacho_com_conteiner_grava_a_arvore`
+  - `test_buscar_despacho_reconstroi_conteiner_aninhado`
+  - `test_salvar_de_novo_despacho_com_conteiner_nao_duplica_linhas`
+
+  Os três conferem o banco com SQL puro, como os outros testes de integração do Despacho.
+- `tests/e2e/test_api.py`: `test_api_deve_adicionar_conteiner_no_despacho` (`POST /despachos/<id>/conteineres`) e `test_api_erro_quando_tara_do_conteiner_passa_da_carga_maxima`.
+
+Os testes antigos do Despacho não mudaram e continuam passando, o que mostra que o volume solto se comporta como antes.
+
+### Custo
+
+- **Mais tipos no domínio.** O agregado tinha duas classes (`Despacho` e `Volume`) e passou a ter quatro (`ItemDespacho` e `Conteiner` a mais). Quem lê `adicionar_volume` precisa saber que "volume" agora quer dizer "qualquer item do despacho".
+- **A persistência ficou mais complexa.** Uma tabela plana virou uma árvore numa tabela só, com auto-referência (`pai_id`), e a conversão passou a ser recursiva nos dois sentidos. Foi a parte mais trabalhosa, e o adaptador precisa conhecer as classes concretas (`isinstance(item, Conteiner)`) para gravar o tipo certo.
+- **A interface comum é mínima.** Só peso e quantidade são comuns. Operações que só fazem sentido no contêiner, como o código, ficam fora do `ItemDespacho`, e quem precisar delas tem de perguntar o tipo.
+- **Nenhum limite próprio do contêiner.** Um AKE real tem peso máximo próprio, e o código ainda não verifica isso.
+
+Mesmo assim o custo compensa: a regra da carga máxima continuou num lugar só e sem nenhum `if` por tipo de item, e a tara, que antes ficava de fora, agora entra na conta.

@@ -201,7 +201,7 @@ class SqlAlchemyEscalaRepository(EscalaRepository):
 
 from airline.domain.model import Despacho
 from airline.domain.repositories import DespachoRepository
-from airline.adapters.orm import DespachoModel, VolumeDespachoModel
+from airline.adapters.orm import DespachoModel, itens_para_models
 
 
 class SqlAlchemyDespachoRepository(DespachoRepository):
@@ -218,8 +218,7 @@ class SqlAlchemyDespachoRepository(DespachoRepository):
             model.voo_id = despacho.voo_id
             model.carga_maxima = despacho.carga_maxima
             model.volumes.clear()
-            for volume in despacho.volumes:
-                model.volumes.append(VolumeDespachoModel(peso=volume.peso))
+            model.volumes.extend(itens_para_models(despacho.volumes))
         self.session.commit()
 
     def buscar_por_id(self, despacho_id):

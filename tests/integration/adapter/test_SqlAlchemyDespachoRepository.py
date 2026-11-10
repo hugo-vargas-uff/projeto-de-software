@@ -128,3 +128,81 @@ def test_buscar_despacho_inexistente(session):
 
     assert repo.buscar_por_id(uuid.uuid4()) is None
     assert repo.buscar_por_voo("NAO-EXISTE") is None
+
+
+# ---- Composite: o conteiner e gravado como linha pai dos seus volumes
+
+from airline.domain.model import Conteiner
+
+
+def test_salvar_despacho_com_conteiner_grava_a_arvore(session):
+    despacho = Despacho(voo_id="MV-3000", carga_maxima=1000)
+    despacho.adicionar_volume(Volume(peso=100))
+    despacho.adicionar_volume(
+        Conteiner(codigo="AKE12345AA", tara=80, itens=[Volume(peso=23), Volume(peso=32)])
+    )
+
+    SqlAlchemyDespachoRepository(session).salvar(despacho)
+
+    linhas = session.execute(text("""
+        SELECT v.tipo, v.codigo, v.peso, pai.codigo
+        FROM despacho_volumes v
+        LEFT JOIN despacho_volumes pai ON pai.id = v.pai_id
+        ORDER BY v.id
+    """)).fetchall()
+
+    assert [tuple(linha) for linha in linhas] == [
+        ("VOLUME", None, 100, None),
+        ("CONTEINER", "AKE12345AA", 80, None),
+        ("VOLUME", None, 23, "AKE12345AA"),
+        ("VOLUME", None, 32, "AKE12345AA"),
+    ]
+
+
+def test_buscar_despacho_reconstroi_conteiner_aninhado(session):
+    despacho_id = uuid.uuid4()
+
+    session.execute(text("""
+        INSERT INTO despachos (id, voo_id, carga_maxima)
+        VALUES (:id, 'MV-6000', 2000)
+    """), {"id": str(despacho_id)})
+
+    session.execute(text("""
+        INSERT INTO despacho_volumes (id, despacho_id, tipo, codigo, peso, pai_id) VALUES
+            (1, :id, 'CONTEINER', 'PMC00001AA', 120, NULL),
+            (2, :id, 'CONTEINER', 'AKE00001AA', 80, 1),
+            (3, :id, 'VOLUME', NULL, 20, 2),
+            (4, :id, 'VOLUME', NULL, 40, 1),
+            (5, :id, 'VOLUME', NULL, 15, NULL)
+    """), {"id": str(despacho_id)})
+
+    session.commit()
+
+    despacho = SqlAlchemyDespachoRepository(session).buscar_por_id(despacho_id)
+
+    assert despacho.volumes == [
+        Conteiner(
+            codigo="PMC00001AA",
+            tara=120,
+            itens=[Conteiner(codigo="AKE00001AA", tara=80, itens=[Volume(peso=20)]), Volume(peso=40)]
+        ),
+        Volume(peso=15),
+    ]
+    assert despacho.peso_total() == 120 + 80 + 20 + 40 + 15
+    assert despacho.quantidade_volumes() == 3
+
+
+def test_salvar_de_novo_despacho_com_conteiner_nao_duplica_linhas(session):
+    repo = SqlAlchemyDespachoRepository(session)
+
+    despacho = Despacho(voo_id="MV-3000", carga_maxima=1000)
+    despacho.adicionar_volume(Conteiner(codigo="AKE12345AA", tara=80, itens=[Volume(peso=20)]))
+    repo.salvar(despacho)
+
+    despacho = repo.buscar_por_id(despacho.id)
+    despacho.adicionar_volume(Volume(peso=50))
+    repo.salvar(despacho)
+
+    total = session.execute(text("SELECT COUNT(*) FROM despacho_volumes")).scalar()
+    assert total == 3
+    assert repo.buscar_por_id(despacho.id).peso_total() == 150
