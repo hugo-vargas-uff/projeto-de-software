@@ -917,3 +917,31 @@ Decidi que o `VooService` só avisa os observadores depois de gravar o cancelame
 #### Uso de IA
 
 Neste checkpoint, o Claude me acompanhou da escolha do padrão até a documentação. Discuti com ele os padrões possíveis, inclusive os que ficariam ruins no Voo, e decidi pelo Observer, cuja aplicabilidade correspondia ao problema do cancelamento. Depois, ajustei alguns testes e a formatação dos arquivos .md, conferindo cada parte e rodando a suíte antes de cada commit.
+
+### Matheus Andrade (@MatheusFSD) - Agregado Aeronave
+
+#### O que eu fiz
+
+- Apliquei o padrão Strategy nas regras de disponibilidade da Aeronave. Cada motivo que pode impedir o voo virou uma classe (`VistoriaValida` e `SemManutencaoPendente`) que implementa `RegraDisponibilidade`, e o `esta_disponivel` passou a exigir que todas as regras da lista permitam o voo.
+- Antes de refatorar, escrevi um teste com 8 combinações de vistoria e ordens de manutenção para travar o comportamento. Ele passou antes e depois, sem alteração.
+- Escrevi os testes das regras antes da implementação, e eles falharam até as classes existirem.
+- Acrescentei um teste que cria uma regra nova dentro do próprio teste e a passa para a aeronave, mostrando que uma regra nova entra sem editar a `Aeronave`.
+- Preenchi a parte da Aeronave no `docs/gof.md`, com os participantes, o diagrama de classes, os testes e o custo.
+
+Arquivos: `src/airline/domain/model.py`, `tests/unit/domain/test_disponibilidade_aeronave.py`, `tests/unit/domain/test_regras_disponibilidade.py`, `docs/gof.md`, `DECISIONS.md`
+
+Commits:
+- `9a9f6c5` - 08/11 - test: trava o comportamento de esta_disponivel antes do Strategy
+- `3ad275b` - 09/11 - test: regras de disponibilidade da Aeronave como estrategias
+- `4606a68` - 09/11 - feat: aplica o padrao Strategy nas regras de disponibilidade da Aeronave
+- `a5669dd` - 10/11 - test: regra nova entra na Aeronave sem editar a classe
+
+#### Decisão: as regras entram por um parâmetro opcional, com as duas regras atuais como padrão
+2026-11-09
+
+Decidi que a `Aeronave` recebe a lista de regras por um parâmetro opcional do construtor e, quando a lista não é passada, usa `VistoriaValida` e `SemManutencaoPendente`. A outra opção era montar a lista no `VooService` e passá-la sempre, o que deixaria a configuração num lugar só, mas obrigaria a mudar o serviço, o `to_domain` do ORM e os testes antigos que criam aeronaves. Com o valor padrão, nenhum desses pontos mudou, e o teste de caracterização passou sem alteração. O custo é que as regras não são gravadas no banco: o `to_domain` sempre volta com as regras padrão. Isso não muda nada enquanto todas as aeronaves usam as mesmas regras, e está registrado como limite no `docs/gof.md`.
+
+#### Uso de IA
+2026-11-10
+
+Usei o Claude Code neste checkpoint. Ele sugeriu padrões possíveis para a Aeronave, e escolhi o Strategy. Também escolhi deixar as classes no `model.py` e receber as regras por um parâmetro opcional com valor padrão. O Claude ajudou a escrever o teste de caracterização, os testes das regras, a implementação no `model.py`, o teste da regra nova e a primeira versão da minha parte do `docs/gof.md`. Conferi cada parte, rodei a suíte antes de cada commit (199 testes passando em 10/11) e fiz os commits. A responsabilidade pelo conteúdo é minha.

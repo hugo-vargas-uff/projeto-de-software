@@ -181,6 +181,77 @@ O padrão trouxe uma classe abstrata, uma classe concreta e uma lista no `VooSer
 
 ## Aeronave, Matheus Andrade
 
+### Padrão: Strategy (Comportamental)
+
+### 1. Contexto no sistema e problema que ele resolve
+
+A regra principal do agregado Aeronave é que uma aeronave com vistoria vencida ou com manutenção pendente não pode voar. O `VooService.agendar_voo` pergunta isso pelo `esta_disponivel(hoje)`. Até o checkpoint 2, as duas condições ficavam numa expressão só dentro desse método. Funcionava, mas a companhia tem outros motivos para deixar uma aeronave no chão, como um limite de horas de voo ou dias de manutenção programada, e cada motivo novo obrigaria a editar a `Aeronave`.
+
+### 2. Por que esse padrão e alternativas consideradas
+
+O Strategy separa algoritmos com a mesma interface e deixa o objeto que os usa trocar de algoritmo sem mudar o próprio código. Aqui, cada regra virou uma estratégia que recebe a aeronave e a data e responde se permite o voo. A `Aeronave` guarda uma lista de regras e só está disponível quando todas permitem. É uma variação do padrão, porque o contexto aplica várias estratégias ao mesmo tempo, e não uma por vez.
+
+A primeira alternativa era manter a expressão com `and`, que é menos código, mas continuaria exigindo editar a `Aeronave` a cada regra nova, o problema de Aberto/Fechado que o padrão resolve. Também pensei em montar a lista no `VooService`, mas isso obrigaria a mudar o serviço, o `to_domain` do ORM e os testes antigos. Preferi um parâmetro opcional com as duas regras atuais como padrão, para que o código existente continuasse funcionando igual.
+
+### 3. Participantes do padrão mapeados para classes reais
+
+| Papel no padrão | Classe | O que faz no projeto | Arquivo |
+|---|---|---|---|
+| Strategy | `RegraDisponibilidade` | Classe abstrata que define o método `permite_voo(aeronave, hoje)` | `src/airline/domain/model.py` |
+| ConcreteStrategy | `VistoriaValida` | Permite o voo enquanto a validade da vistoria não passou de `hoje` | `src/airline/domain/model.py` |
+| ConcreteStrategy | `SemManutencaoPendente` | Permite o voo quando nenhuma ordem de manutenção está pendente | `src/airline/domain/model.py` |
+| Context | `Aeronave` | Guarda a lista `regras` e, no `esta_disponivel`, exige que todas permitam o voo | `src/airline/domain/model.py` |
+
+As classes ficaram no `model.py` porque as regras são parte do domínio. O `VooService` continua chamando só `esta_disponivel`, sem conhecer as regras.
+
+### 4. Diagrama de classes
+
+```mermaid
+classDiagram
+    class Aeronave {
+        <<Context>>
+        +str prefixo
+        +date validade_vistoria
+        +list ordens_manutencao
+        +list regras
+        +esta_disponivel(hoje) bool
+    }
+    class RegraDisponibilidade {
+        <<Strategy>>
+        +permite_voo(aeronave, hoje)* bool
+    }
+    class VistoriaValida {
+        <<ConcreteStrategy>>
+        +permite_voo(aeronave, hoje) bool
+    }
+    class SemManutencaoPendente {
+        <<ConcreteStrategy>>
+        +permite_voo(aeronave, hoje) bool
+    }
+    class VooService {
+        +agendar_voo(numero_voo, origem, destino, prefixo_aeronave, hoje)
+    }
+    Aeronave "1" o-- "*" RegraDisponibilidade : aplica todas
+    RegraDisponibilidade <|-- VistoriaValida : implementa
+    RegraDisponibilidade <|-- SemManutencaoPendente : implementa
+    VooService --> Aeronave : esta_disponivel(hoje)
+```
+
+### 5. Testes
+
+Antes de refatorar, escrevi `tests/unit/domain/test_disponibilidade_aeronave.py` (commit `9a9f6c5`), uma tabela com 8 combinações de vistoria e ordens de manutenção que passou antes e depois da refatoração, sem alteração.
+
+Os testes do padrão ficam em `tests/unit/domain/test_regras_disponibilidade.py`:
+
+- Commit `3ad275b`: testa cada estratégia sozinha e confere que a aeronave usa as duas por padrão. Entrou antes da implementação e só passou com o commit `4606a68`, que aplicou o padrão.
+- Commit `a5669dd`: `test_regra_nova_entra_na_aeronave_sem_editar_a_classe` cria a regra `ForaDosDiasBloqueados` dentro do próprio teste e a passa para a aeronave, que fica indisponível no dia bloqueado sem nenhuma mudança na classe `Aeronave`.
+
+Em 10/11, a suíte inteira passou com 199 testes.
+
+### 6. Custo da aplicação do padrão
+
+O padrão trouxe três classes para uma lógica que antes cabia em três linhas, e quem lê o `esta_disponivel` precisa olhar o construtor para saber quais regras valem. As regras também não são gravadas no banco: o `to_domain` sempre volta com as regras padrão, o que não muda nada enquanto todas as aeronaves usam as mesmas. Compensa porque o próximo motivo para deixar uma aeronave no chão entra como uma classe nova, sem mexer no que já está testado.
+
 ## Reserva e Passageiro, Hugo Vargas
 
 ### Chain of Responsibility — Reserva
