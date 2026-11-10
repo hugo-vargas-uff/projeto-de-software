@@ -116,4 +116,119 @@ Esse custo é amplamente compensado pela clareza arquitetural: a entidade `Escal
 
 ## Reserva e Passageiro, Hugo Vargas
 
+### Chain of Responsibility — Reserva
+
+### 1. Nome e categoria
+
+**Padrão:** Chain of Responsibility (Cadeia de Responsabilidade).
+
+**Categoria:** Comportamental.
+
+### 2. Contexto e problema
+
+No módulo de Reserva, as operações de criação e busca precisam verificar se o passageiro e o voo informados existem antes de continuar a execução.
+
+Originalmente, essas verificações eram realizadas diretamente nos métodos `criar_reserva()` e `buscar()` do `ReservaService`.
+
+O padrão foi aplicado para separar as validações em handlers independentes, organizados em uma cadeia, evitando concentrar essas responsabilidades no serviço.
+
+### 3. Justificativa da escolha
+
+O Chain of Responsibility permite organizar verificações sequenciais em handlers independentes, nos quais cada componente executa sua validação e encaminha a solicitação ao próximo handler caso ela seja aprovada.
+
+Uma alternativa considerada seria manter as verificações diretamente no `ReservaService`, utilizando estruturas condicionais (`if`). Essa alternativa possui menor complexidade e seria suficiente para o cenário atual.
+
+O CoR foi escolhido para separar as responsabilidades de validação e permitir a inclusão de novas verificações independentes sem concentrar suas implementações nos métodos do serviço.
+
+### 4. Participantes do padrão
+
+| Participante | Classe no projeto | Responsabilidade |
+|---|---|---|
+| Handler | `ReservaValidationHandler` | Define o contrato de validação e o encaminhamento para o próximo handler. |
+| Concrete Handler | `VerificarPassageiroHandler` | Verifica se o passageiro existe. |
+| Concrete Handler | `VerificarVooHandler` | Verifica se o voo existe. |
+| Client | `ReservaService` | Configura a cadeia e inicia sua execução nas operações de criação e busca. |
+
+### 5. Diagrama de classes
+
+```mermaid
+classDiagram
+    class ReservaService {
+        -ReservaRepository reserva_repository
+        -PassageiroRepository passageiro_repository
+        -VooRepository voo_repository
+        -ReservaValidationHandler reserva_validation_handler
+        -configurar_validacoes()
+        -validar_reserva(voo_id, passageiro_id)
+        +criar_reserva(voo_id, passageiro_id)
+        +buscar(voo_id, passageiro_id)
+        +contar_reservas_por_voo(voo_id)
+    }
+
+    class ReservaValidationHandler {
+        <<abstract>>
+        -ReservaValidationHandler _proximo
+        +definir_proximo(handler)
+        +validar_proximo(voo_id, passageiro_id)
+        +validar(voo_id, passageiro_id)*
+    }
+
+    class VerificarPassageiroHandler {
+        -PassageiroRepository passageiro_repository
+        +validar(voo_id, passageiro_id)
+    }
+
+    class VerificarVooHandler {
+        -VooRepository voo_repository
+        +validar(voo_id, passageiro_id)
+    }
+
+    class ReservaRepository {
+        <<interface>>
+        +salvar(reserva) None
+        +buscar(voo_id, passageiro_id)
+        +contar_reservas_por_voo(voo_id)
+        +listar_por_voo(voo_id)
+    }
+
+    class PassageiroRepository {
+        <<interface>>
+        +salvar(passageiro) None
+        +buscar_por_id(passageiro_id)
+        +buscar_por_cpf(cpf)
+    }
+
+    class VooRepository {
+        <<interface>>
+        +salvar(voo) None
+        +buscar(numero_voo)
+    }
+
+    ReservaValidationHandler <|-- VerificarPassageiroHandler
+    ReservaValidationHandler <|-- VerificarVooHandler
+    ReservaService --> ReservaValidationHandler : configura e inicia
+    VerificarPassageiroHandler --> VerificarVooHandler : próximo handler
+    VerificarPassageiroHandler --> PassageiroRepository
+    VerificarVooHandler --> VooRepository
+    ReservaService --> ReservaRepository
+```
+
+### 6. Testes
+
+Foram implementados testes unitários para verificar:
+
+- A execução dos dois handlers quando passageiro e voo existem.
+- A interrupção da cadeia e o lançamento de `PassageiroNaoEncontrado` quando o passageiro não existe.
+- A interrupção da cadeia e o lançamento de `VooNaoEncontrado` quando o voo não existe.
+
+Os testes anteriores do `ReservaService` também foram executados e continuaram passando após a implementação.
+
+### 7. Custo da aplicação
+
+A aplicação do padrão aumentou a complexidade estrutural do módulo de Reserva. Foram necessárias uma classe abstrata, duas classes concretas de handlers e a configuração do encadeamento.
+
+Essa estrutura exige maior esforço de manutenção e testes em comparação com a implementação original, que utilizava apenas estruturas condicionais no serviço.
+
+Como o fluxo atual possui somente duas validações, o CoR introduz uma complexidade adicional que não seria necessária em uma solução mais simples. Em contrapartida, separa as responsabilidades de validação e facilita a inclusão de novos handlers independentes.
+
 ## Despacho, Vinicius Duarte
