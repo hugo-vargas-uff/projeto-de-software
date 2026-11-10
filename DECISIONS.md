@@ -870,7 +870,7 @@ Arquivos: `src/airline/domain/model.py`, `src/airline/adapters/orm.py`, `src/air
 
 Commits:
 - `2954816` — 09/11 — feat: aplica o padrao Composite no Despacho com Volume e Conteiner
-- `<hash>` — 10/11 — feat: persiste e expoe conteineres do despacho e documenta o Composite
+- `b1ef6fc` — 10/11 — feat: persiste e expoe conteineres do despacho e documenta o Composite
 
 #### Decisão: o Conteiner é imutável
 
