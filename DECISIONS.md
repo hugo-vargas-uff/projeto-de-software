@@ -825,3 +825,32 @@ Decidi extrair a responsabilidade de acumular horas e validar o teto regulamenta
 2026-11-03
 
 Usei o assistente de IA para discutir alternativas de refatoração aderentes ao SOLID, validar a conformidade dos tópicos exigidos no `docs/solid.md` e apoiar na execução dos comandos Git. A análise do código, a implementação das classes e testes e as decisões de design foram revisadas e validadas por mim.
+
+
+## Checkpoint 3 — Padrões de Projeto GoF
+
+### Filipe Moreira (@Filipe-Moreira-sb) — Agregados Tripulante e Escala
+
+#### O que eu fiz
+
+- Implementei o padrão comportamental **GoF State** para gerenciar o ciclo de vida da `Escala`, resolvendo a falta de controle sobre transições operacionais e a necessidade de imutabilidade após a realização do voo.
+- Criei a interface abstrata `EstadoEscala` e as classes concretas `EstadoEscalaAberta`, `EstadoEscalaConfirmada` e `EstadoEscalaRealizada`, eliminando múltiplos condicionais na raiz do agregado.
+- Integrei o método `confirmar_escala(voo_id)` na camada de serviço (`EscalaService`), orquestrando a homologação da tripulação e garantindo que escalas confirmadas ou realizadas bloqueiem alterações indevidas.
+- Criei testes unitários cobrindo todos os estados, bloqueios de alteração e regras de transição em `tests/unit/domain/test_escala.py` e `tests/unit/service_layer/test_tripulacao_service.py`.
+- Documentei o padrão no arquivo `docs/gof.md` com justificativa, participantes mapeados, diagrama de classes em Mermaid, testes e análise de custo.
+
+Arquivos: `src/airline/domain/model.py`, `src/airline/service_layer/services.py`, `tests/unit/domain/test_escala.py`, `tests/unit/service_layer/test_tripulacao_service.py`, `docs/gof.md`, `DECISIONS.md`
+
+Commits:
+- `8092726` — 09/11 — feat: implementa padrao GoF State no agregado Escala e servicos com testes
+- `3cdc573` — 09/11 — docs: documenta padrao GoF State da Escala com diagrama Mermaid em docs/gof.md
+
+#### Decisão: uso do padrão State para proteger o ciclo de vida e a imutabilidade da Escala
+2026-11-10
+
+Decidi utilizar o padrão State em vez de manter uma variável com enum e dezenas de `if`s espalhados pelos métodos da `Escala`. Na aviação comercial, uma escala confirmada não pode sofrer alocações ou descarte de tripulantes sem reabertura formal, e uma escala realizada torna-se um registro histórico imutável para a ANAC. O padrão State encapsula essas regras e transições em classes isoladas, mantendo a classe de contexto limpa e preparada para novos estados sem ferir o princípio Aberto/Fechado.
+
+#### Uso de IA
+2026-11-10
+
+Utilizei o assistente de IA generativa para auxiliar na modelagem do diagrama de classes em sintaxe Mermaid, na revisão da documentação dos participantes do padrão em `docs/gof.md` e na validação dos comandos do terminal Git. Toda a lógica de negócios, classes de estado, exceções de domínio e testes foram implementados e validados por mim no repositório.
