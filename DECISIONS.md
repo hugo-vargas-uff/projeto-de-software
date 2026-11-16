@@ -743,6 +743,30 @@ No cenário de modificabilidade, o exemplo mais comum seria trocar o banco de SQ
 
 Usei o NotebookLM para resumir as aulas 1 e 2 e consultar o enunciado da Fase 2. Usei o Claude para medir evidências numa cópia do repositório, para organizar as ideias em rascunhos e para revisar os textos.
 
+
+### Hugo Vargas (@hugo-vargas-uff) - Agregado Reserva e Passageiro
+
+#### O que eu fiz
+
+Contribuí para a documentação da arquitetura existente do projeto e das decisões arquiteturais tomadas durante o desenvolvimento.
+
+- `docs/arquitetura.md`: elaboração da seção sobre a arquitetura atual, descrevendo a organização em camadas, os padrões arquiteturais adotados (Ports & Adapters, Repository e Service Layer), a direção das dependências, o mapeamento dos componentes para as pastas de `src/` e o diagrama de componentes.
+- `docs/adr/ADR-001`: documentação da identidade composta de `Reserva`, definida por `voo_id` e `passageiro_id`, e da responsabilidade do `ReservaService` pela coordenação de sua criação.
+- `docs/adr/ADR-002`: documentação da identidade de `Passageiro`, definida por um UUID, mantendo o CPF como atributo único, com validação de duplicidade no serviço e restrição de unicidade no banco de dados.
+
+#### Decisões de projeto
+
+Registrei a decisão de utilizar uma identidade composta para `Reserva`, pois a combinação entre voo e passageiro representa diretamente a regra de negócio de que um passageiro pode possuir apenas uma reserva para determinado voo. Também documentei a utilização de UUID como identificador interno de `Passageiro`, mantendo o CPF independente da identidade técnica da entidade.
+
+#### Uso de inteligência artificial
+
+Utilizei o ChatGPT como apoio para analisar a arquitetura existente, compreender e discutir a organização dos componentes e revisar a documentação de `docs/arquitetura.md`. Também utilizei a ferramenta para discutir as decisões arquiteturais, avaliar alternativas e revisar a escrita dos ADRs. As sugestões foram utilizadas como apoio à análise e à documentação, mantendo a validação do conteúdo sob minha responsabilidade.
+
+#### Commits
+
+- 2b47119 — Documentação dos ADRs de identidade e criação de Reserva e cadastro de Passageiro (`docs/adr/ADR-001` e `docs/adr/ADR-002`).
+- d4649b1 e cfe39d2 — Documentação da arquitetura atual (`docs/arquitetura.md`).
+
 ## Checkpoint 2 - Refatoração SOLID
 
 ### Matheus Verdan (@verdanmatheus) - Agregado Voo
@@ -825,6 +849,48 @@ Decidi extrair a responsabilidade de acumular horas e validar o teto regulamenta
 2026-11-03
 
 Usei o assistente de IA para discutir alternativas de refatoração aderentes ao SOLID, validar a conformidade dos tópicos exigidos no `docs/solid.md` e apoiar na execução dos comandos Git. A análise do código, a implementação das classes e testes e as decisões de design foram revisadas e validadas por mim.
+
+
+### Hugo Vargas (@hugo-vargas-uff) - Agregado Passageiro
+
+#### O que eu fiz
+
+Identifiquei e corrigi uma violação do Princípio da Responsabilidade Única (SRP) no agregado `Passageiro`, relacionada à representação e validação do CPF.
+
+Arquivos: `src/airline/domain/model.py`, `src/airline/domain/exception.py`, `src/airline/service_layer/service.py`, `src/airline/entrypoints/flask_app.py`, `src/airline/adapters/orm.py`, `tests/e2e/test_api_passageiro.py`, `tests/integration/adapter/test_SqlAlchemyPassageiroRepository.py`, `tests/integration/adapter/test_SqlAlchemyReservaRepository.py`, `tests/unit/service_layer/test_passageiro_service.py`, `tests/unit/service_layer/test_reserva_service.py`, `tests/unit/domain/test_passageiro.py`, `docs/solid.md`
+
+- Criação do Value Object CPF, responsável por centralizar a normalização e as regras de validação do documento.
+
+- Criação de exceções específicas para representar situações de CPF inválido e recebimento de tipos incorretos.
+
+- Adaptação das demais camadas para trabalhar com o Value Object CPF, em vez de utilizar strings diretamente.
+
+- Adaptação do Controller para converter o CPF recebido na requisição, originalmente uma string, em uma instância de CPF.
+
+- Adaptação da camada de persistência para converter o Value Object em string ao armazenar os dados e reconstruir o objeto ao recuperá-los.
+
+- Adaptação dos testes existentes para utilizar o Value Object CPF e criação de novos testes para verificar seu comportamento e suas regras de validação.
+
+#### Decisão de projeto
+
+Decidi introduzir o Value Object `CPF` para centralizar as regras de normalização e validação desse dado no domínio, evitando que essas responsabilidades ficassem associadas diretamente à entidade `Passageiro` ou distribuídas entre diferentes componentes. Mantive a verificação de CPF duplicado no `PassageiroService`, por ser uma regra do caso de uso que depende da consulta ao repositório.
+
+#### Uso de inteligência artificial
+
+Utilizei o ChatGPT para discutir a violação do princípio SRP identificada no código e explorar possíveis soluções para corrigi-la. A ferramenta auxiliou na avaliação das alternativas, incluindo a introdução de um Value Object para representar o CPF e centralizar suas regras de validação. A decisão de implementação e a validação da solução foram realizadas por mim.
+
+#### Commits
+
+- f1184e0 - refactor: adiciona objeto de valor CPF
+- d1eca82 - feat: novas exceções de dominio para Passageiro
+- b7253da - refactor: adiciona exceções de dominio
+- 60a76e4 - refactor: controller converte string para objeto de valor
+- 44628b4 - refactor: servico agora recebe um objeto CPF
+- f4908e6 - refactor: conversao de CPF e String nos objetos ORM
+- 8200fc3 - refactor: conversao de CPF e String nos objetos ORM
+- d980ad4 - test: integra objeto CPF aos testes
+- d08f13f - test: adiciona testes para objeto de valor CPF
+- a616d83 - docs: adiciona refatoracao de Passageiro
 
 
 ## Checkpoint 3 — Padrões de Projeto GoF
@@ -945,3 +1011,40 @@ Decidi que a `Aeronave` recebe a lista de regras por um parâmetro opcional do c
 2026-11-10
 
 Usei o Claude Code neste checkpoint. Ele sugeriu padrões possíveis para a Aeronave, e escolhi o Strategy. Também escolhi deixar as classes no `model.py` e receber as regras por um parâmetro opcional com valor padrão. O Claude ajudou a escrever o teste de caracterização, os testes das regras, a implementação no `model.py`, o teste da regra nova e a primeira versão da minha parte do `docs/gof.md`. Conferi cada parte, rodei a suíte antes de cada commit (199 testes passando em 10/11) e fiz os commits. A responsabilidade pelo conteúdo é minha.
+
+### Hugo Vargas (@hugo-vargas-uff) - Agregado Reserva
+
+#### O que eu fiz
+
+Implementei o padrão comportamental Chain of Responsibility (Cadeia de Responsabilidade) no agregado `Reserva`, com o objetivo de separar e organizar as validações necessárias antes das operações de criação e busca de reservas.
+
+- `src/airline/service_layer/reserva_handlers.py`: criação da classe abstrata `ReservaValidationHandler` e dos handlers concretos `VerificarPassageiroHandler` e `VerificarVooHandler`.
+- `src/airline/service_layer/services.py`: adaptação do `ReservaService` para configurar a cadeia de validações e executá-la antes das operações de criação e busca.
+- `tests/unit/service_layer/test_reserva_handlers.py`: criação de testes para verificar a execução sequencial dos handlers e a interrupção da cadeia quando uma validação falha.
+- `tests/unit/service_layer/test_reserva_services.py`: adaptação e execução dos testes do serviço de reservas para verificar a integração com a nova cadeia de validações.
+
+#### Decisão de projeto
+
+Escolhi o padrão Chain of Responsibility para separar as verificações de existência de passageiro e voo em handlers independentes, evitando concentrar todas as validações no `ReservaService`. Considerei como alternativa manter as verificações diretamente no serviço por meio de condições `if`, uma solução mais simples para o cenário atual, mas que manteria as validações concentradas em uma única classe. Optei pela cadeia para permitir a inclusão de novas verificações independentes com menor impacto no serviço.
+
+#### Uso de inteligência artificial
+
+Utilizei o ChatGPT como apoio para estudar e escolher o padrão GoF adequado ao contexto do agregado `Reserva`, discutir alternativas de implementação, esclarecer dúvidas sobre o funcionamento do Chain of Responsibility e auxiliar na implementação do padrão e dos testes. Analisei as sugestões durante o desenvolvimento e executei os testes automatizados para verificar o comportamento da implementação.
+
+#### Commits
+
+- `811d464` - feat: implementa Chain of Responsibility em Reserva
+- `bf6411c` - test: testes para padrao gof CoR de Reserva
+- `947c630` - docs: documenta padrao gof CoR em Reserva
+
+## Checkpoint 4 — Frameworks
+
+### Hugo Vargas (@hugo-vargas-uff)
+
+### O que eu fiz
+
+Analisei os frameworks utilizados no projeto (Flask, SQLAlchemy e pytest), documentando suas responsabilidades, as camadas em que aparecem e os motivos pelos quais o domínio não depende diretamente dessas tecnologias.
+
+**Uso de IA:** Utilizei o ChatGPT para compreender melhor as responsabilidades de cada framework, identificar como aparecem no código do projeto e revisar a explicação sobre a independência do domínio. Também utilizei a ferramenta para conferir a precisão dos conceitos e melhorar a redação da documentação.
+
+**Arquivos envolvidos:** `docs/frameworks.md`.
