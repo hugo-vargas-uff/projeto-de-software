@@ -100,4 +100,90 @@ A diferença entre uma biblioteca e um framework está em quem controla o fluxo 
 
 ## 3. Padrões de projeto dentro dos frameworks
 
+Os frameworks que utilizamos não são apenas coleções de funções; internamente, eles são construídos sobre padrões consolidados de projeto de software (GoF e padrões de arquitetura corporativa de Martin Fowler). No nosso projeto, podemos apontar claramente onde pelo menos três desses padrões operam no código real:
+
+### Padrão 1: Decorator (GoF Estrutural) — Flask
+
+- **Onde aparece no nosso código:** Em `src/airline/entrypoints/flask_app.py`, em todas as definições de rotas da API, como:
+  ```python
+  @app.route("/voos/<numero_voo>/cancelar", methods=["POST"])
+  def cancelar_voo(numero_voo):
+  ...
+  @app.post("/tripulantes")
+  def cadastrar_tripulante():
+  ...
+  @app.get("/escalas/<voo_id>")
+  def buscar_escala(voo_id):
+  ```
+- **Como o framework usa internamente:** O Flask utiliza o padrão estrutural Decorator para interceptar a função manipuladora de requisição (`view function`). Em vez de exigir que a nossa função herde de uma classe base de endpoint ou registre rotas manualmente em coleções externas, o decorator `@app.route` "embrulha" a função, extrai seus metadados, registra a regra no mapa de URLs (`url_map`) do Flask e a devolve intacta. Quando uma requisição HTTP chega, o framework executa comportamentos antes e depois da chamada da função (como parsing de parâmetros da URL e formatação da resposta), exemplificando a extensão de comportamento dinâmico sem alterar a estrutura da função decorada.
+
+### Padrão 2: Data Mapper (Fowler / Padrão de Persistência) — SQLAlchemy
+
+- **Onde aparece no nosso código:** Na separação estrita entre as entidades puras em `src/airline/domain/model.py` (`Tripulante`, `Escala`, `Voo`, `Aeronave`) e as classes de persistência em `src/airline/adapters/orm.py` (`TripulanteModel`, `EscalaModel`, `VooModel`, `AeronaveModel`), integradas através dos métodos `from_domain()` e `to_domain()`:
+  ```python
+  class TripulanteModel(Base):
+      __tablename__ = "tripulantes"
+      id = Column(String, primary_key=True)
+      ...
+      @classmethod
+      def from_domain(cls, tripulante: Tripulante): ...
+
+      def to_domain(self): ...
+  ```
+- **Como o framework usa internamente:** Ao contrário do padrão Active Record (onde a entidade de negócio herda do ORM e sabe salvar a si mesma no banco), o SQLAlchemy adota o padrão Data Mapper. O framework mantém uma camada de mapeamento independente responsável por transferir dados entre os objetos em memória e o esquema relacional do banco. Dessa forma, as nossas classes de domínio permanecem completamente desvinculadas de SQL, tipos de colunas, chaves primárias de banco ou chamadas de I/O, garantindo que o domínio permaneça puro e focado apenas nas regras de negócio.
+
+### Padrão 3: Proxy / Lazy Loading (GoF Estrutural) — SQLAlchemy
+
+- **Onde aparece no nosso código:** Nas definições de relacionamentos entre tabelas em `src/airline/adapters/orm.py`, como nas relações de `EscalaModel` com `EscalaTripulanteModel` e de `AeronaveModel` com `OrdemManutencaoModel`:
+  ```python
+  tripulantes = relationship(
+      "EscalaTripulanteModel",
+      back_populates="escala",
+      cascade="all, delete-orphan"
+  )
+  ```
+- **Como o framework usa internamente:** O SQLAlchemy utiliza objetos Proxy para intermediar o acesso a coleções e objetos relacionados. Quando uma `Escala` ou `Aeronave` é consultada no banco, o SQLAlchemy não executa imediatamente junções complexas com todas as tabelas filhas. Em vez disso, ele instancia uma coleção especial instrumentada que funciona como um Proxy Virtual (Lazy Loading). A leitura dos registros relacionados só é disparada quando o código de fato itera ou acessa o atributo, economizando memória e transferências desnecessárias de dados.
+
+### Padrão 4: Factory / Dependency Injection (GoF Criacional) — pytest
+
+- **Onde aparece no nosso código:** Em `tests/conftest.py`, nas definições das fixtures `@pytest.fixture def client(session_factory)` e `@pytest.fixture def session_factory()`, e em todos os testes e2e que recebem `client` como argumento:
+  ```python
+  def test_cadastrar_tripulante_sucesso(client):
+      ...
+  ```
+- **Como o framework usa internamente:** O pytest funciona como um contêiner de injeção de dependências baseado em funções de fábrica (Factory). A anotação `@pytest.fixture` transforma a função em uma fábrica gerenciada, com ciclo de vida controlado (criação, execução com `yield` e finalização/limpeza). Em tempo de execução, o pytest inspeciona a lista de argumentos de cada função de teste e injeta automaticamente as dependências solicitadas, sem que o teste precise instanciar objetos manualmente ou gerenciar conexões.
+
+---
+
 ## 4. E se fosse Django?
+
+A escolha por uma arquitetura em camadas com microframeworks (Flask, SQLAlchemy puro e pytest) traz contrastes fundamentais quando comparada ao uso de um framework full-stack e opinativo como o **Django**:
+
+### O que mudaria na arquitetura e no código:
+
+1. **Adoção compulsória do padrão Active Record:**
+   * No Django, todas as entidades de negócio herdam obrigatoriamente de `django.db.models.Model` (ex.: `class Tripulante(models.Model): ...`).
+   * Não existiria o isolamento entre o domínio (`src/airline/domain/model.py`) e a persistência (`src/airline/adapters/orm.py`). Cada classe de negócio seria simultaneamente a representação da tabela no banco de dados, misturando regras operacionais da aviação com métodos de persistência como `.save()`, `.delete()` e consultas diretas como `Tripulante.objects.filter(...)`.
+
+2. **Extinção dos Repositórios e Fakes:**
+   * A camada de repositórios abstratos (`domain/repositories.py`) e suas implementações concretas (`adapters/repository.py`) deixariam de fazer sentido na mentalidade idiomática do Django, pois o `Manager` nativo (`Model.objects`) já atua como um repositório acoplado.
+   * Não utilizaríamos `FakeTripulanteRepository` ou `FakeEscalaRepository`. Os testes de serviços seriam forçados a interagir diretamente com o banco de dados do Django (geralmente SQLite em memória ou transações revertidas via `TestCase`).
+
+3. **Roteamento Centralizado vs Decoradores:**
+   * O Flask utiliza roteamento distribuído e flexível via decoradores (`@app.route`, `@app.post`). No Django, o roteamento é obrigatoriamente centralizado em arquivos `urls.py`, mapeando rotas para Class-Based Views (CBVs), ViewSets ou funções controladoras, desacoplando a URL da função, mas aumentando a cerimônia de configuração.
+
+4. **Camada de Serviço no Django:**
+   * O padrão arquitetural tradicional do Django tende a concentrar a lógica de negócio ou nas Views (fat views) ou nos Models (fat models). Para mantermos uma `service_layer` organizada como a atual, precisaríamos adotar um padrão de arquitetura externa (como o Django Services Pattern), lutando contra a convenção padrão do framework que empurra a lógica para dentro dos modelos Active Record.
+
+### Ganhos que o Django traria:
+- **Painel Administrativo nativo (Django Admin):** Criaria automaticamente interfaces visuais completas para cadastrar tripulantes, inspecionar voos, gerenciar aeronaves e visualizar despachos sem necessidade de implementar telas ou rotas manuais.
+- **Migrações automáticas:** Comandos nativos como `makemigrations` e `migrate` detectariam alterações nas classes de modelo e gerariam scripts de migração do banco automaticamente, dispensando scripts manuais de criação de schema.
+- **Validação e serialização consolidadas:** O ecossistema Django REST Framework (DRF) forneceria serializadores robustos com validações declarativas, paginação e autenticação integradas.
+
+### Perdas que o Django causaria:
+- **Perda total da pureza do Domínio:** As entidades de negócio passariam a carregar dezenas de métodos e atributos de infraestrutura do Django, ferindo o princípio de que o domínio deve desconhecer detalhes de banco de dados.
+- **Lentidão e dependência nos testes de unidade:** No projeto atual, a suíte unitária de domínio roda em frações de segundo porque não depende de nenhum módulo externo, I/O ou banco. No Django, instanciar ou testar um `Model` normalmente exige inicializar o ambiente do framework (`django.setup()`) e o schema de banco de dados, tornando a suíte consideravelmente mais pesada.
+- **Dificuldade de aplicação de padrões GoF puros:** Padrões como **State** (aplicado na `Escala`) ou Value Objects puros (como `ControleJornada` e `CPF`) exigem adaptações não triviais quando encapsulados dentro de campos gerenciados pelo ORM do Django.
+
+### Conclusão:
+Se o objetivo do projeto fosse entregar rapidamente um produto web tradicional com formulários administrativos e CRUDs padrão, o **Django** seria muito mais produtivo. Porém, para um sistema com regras de negócio críticas e regulamentadas (como aviação civil), onde a testabilidade instantânea, a independência de infraestrutura e a modelagem rica em DDD são prioridades, a combinação adotada de **Flask + SQLAlchemy (Data Mapper) + Pytest** foi a decisão arquitetural correta, permitindo isolar o coração do sistema da tecnologia de armazenamento.
