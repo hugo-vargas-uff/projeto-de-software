@@ -1,6 +1,7 @@
 import uuid
 import pytest
-from airline.entrypoints.flask_app import app, engine
+from sqlalchemy import text
+from airline.entrypoints.flask_app import app, engine, SessionFactory
 from airline.adapters.orm import Base
 
 
@@ -69,7 +70,19 @@ def test_api_erro_ao_escalar_com_horas_acima_do_teto(client):
     assert "Teto regulamentar de horas ultrapassado" in response.get_json()["mensagem"]
 
 
+def gravar_voo_agendado(numero_voo="MV-3000"):
+    # o despacho agora so abre para voo agendado; o voo e gravado direto na tabela
+    session = SessionFactory()
+    session.execute(text("""
+        INSERT INTO voos (numero_voo, origem, destino, aeronave_id, assentos_disponiveis, status)
+        VALUES (:numero, 'GRU', 'GIG', 'PR-400', 150, 'AGENDADO')
+    """), {"numero": numero_voo})
+    session.commit()
+    session.close()
+
+
 def test_api_deve_abrir_despacho(client):
+    gravar_voo_agendado()
     response = client.post("/despachos", json={
         "voo_id": "MV-3000",
         "carga_maxima": 1000
@@ -84,6 +97,7 @@ def test_api_deve_abrir_despacho(client):
 
 
 def test_api_erro_ao_abrir_dois_despachos_para_o_mesmo_voo(client):
+    gravar_voo_agendado()
     client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 1000})
 
     response = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 500})
@@ -93,6 +107,7 @@ def test_api_erro_ao_abrir_dois_despachos_para_o_mesmo_voo(client):
 
 
 def test_api_deve_adicionar_volume_no_despacho(client):
+    gravar_voo_agendado()
     resp_d = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 1000})
     despacho_id = resp_d.get_json()["id"]
 
@@ -105,6 +120,7 @@ def test_api_deve_adicionar_volume_no_despacho(client):
 
 
 def test_api_erro_ao_adicionar_volume_acima_da_carga_maxima(client):
+    gravar_voo_agendado()
     resp_d = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 1000})
     despacho_id = resp_d.get_json()["id"]
 
@@ -122,6 +138,7 @@ def test_api_erro_ao_adicionar_volume_em_despacho_inexistente(client):
 
 
 def test_api_deve_consultar_despacho(client):
+    gravar_voo_agendado()
     resp_d = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 1000})
     despacho_id = resp_d.get_json()["id"]
     client.post(f"/despachos/{despacho_id}/volumes", json={"peso": 100})
@@ -145,6 +162,7 @@ def test_api_erro_ao_consultar_despacho_inexistente(client):
 
 
 def test_api_deve_adicionar_conteiner_no_despacho(client):
+    gravar_voo_agendado()
     resp_d = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 1000})
     despacho_id = resp_d.get_json()["id"]
     client.post(f"/despachos/{despacho_id}/volumes", json={"peso": 100})
@@ -166,6 +184,7 @@ def test_api_deve_adicionar_conteiner_no_despacho(client):
 
 
 def test_api_erro_quando_tara_do_conteiner_passa_da_carga_maxima(client):
+    gravar_voo_agendado()
     resp_d = client.post("/despachos", json={"voo_id": "MV-3000", "carga_maxima": 200})
     despacho_id = resp_d.get_json()["id"]
 
@@ -177,3 +196,10 @@ def test_api_erro_quando_tara_do_conteiner_passa_da_carga_maxima(client):
 
     assert response.status_code == 400
     assert "ultrapassa a carga maxima do despacho" in response.get_json()["mensagem"]
+
+
+def test_api_erro_ao_abrir_despacho_para_voo_inexistente(client):
+    response = client.post("/despachos", json={"voo_id": "XX-999", "carga_maxima": 1000})
+
+    assert response.status_code == 400
+    assert "nao esta agendado" in response.get_json()["mensagem"]

@@ -101,3 +101,11 @@ class DespachoRepository(ABC):
     @abstractmethod
     def buscar_por_voo(self, voo_id: str):
         pass
+
+
+class VoosParaDespacho(ABC):
+    # o despacho so precisa saber se o voo aceita carga, nao precisa do VooRepository inteiro (ISP)
+
+    @abstractmethod
+    def aceita_despacho(self, voo_id: str) -> bool:
+        pass

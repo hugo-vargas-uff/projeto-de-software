@@ -209,16 +209,20 @@ class AeronaveService:
 # --- Serviço de Despacho
 
 from airline.domain.model import Despacho, Volume, Conteiner, ErroRegraDespacho
-from airline.domain.repositories import DespachoRepository
+from airline.domain.repositories import DespachoRepository, VoosParaDespacho
 from airline.domain.exception import DespachoNaoEncontrado
 
 
 class DespachoService:
 
-    def __init__(self, despacho_repository: DespachoRepository):
+    def __init__(self, despacho_repository: DespachoRepository, voos: VoosParaDespacho):
         self.despacho_repository = despacho_repository
+        self.voos = voos
 
     def abrir_despacho(self, voo_id, carga_maxima):
+        if not self.voos.aceita_despacho(voo_id):
+            raise ErroRegraDespacho("Voo nao encontrado ou nao esta agendado")
+
         if self.despacho_repository.buscar_por_voo(voo_id) is not None:
             raise ErroRegraDespacho("Ja existe um despacho aberto para este voo")
 

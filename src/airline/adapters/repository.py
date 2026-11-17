@@ -200,7 +200,7 @@ class SqlAlchemyEscalaRepository(EscalaRepository):
 # --- Despacho
 
 from airline.domain.model import Despacho
-from airline.domain.repositories import DespachoRepository
+from airline.domain.repositories import DespachoRepository, VoosParaDespacho
 from airline.adapters.orm import DespachoModel, itens_para_models
 
 
@@ -232,3 +232,14 @@ class SqlAlchemyDespachoRepository(DespachoRepository):
         if model is None:
             return None
         return model.to_domain()
+
+
+class SqlAlchemyVoosParaDespacho(VoosParaDespacho):
+    # so le a tabela de voos; nao monta o Voo nem tem como altera-lo
+
+    def __init__(self, session):
+        self.session = session
+
+    def aceita_despacho(self, voo_id: str) -> bool:
+        voo = self.session.query(VooModel).filter_by(numero_voo=str(voo_id)).first()
+        return voo is not None and voo.status == StatusVoo.AGENDADO.value

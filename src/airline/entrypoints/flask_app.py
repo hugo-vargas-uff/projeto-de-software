@@ -110,7 +110,7 @@ def consultar_escala(voo_id):
 
 # --- Despacho
 
-from airline.adapters.repository import SqlAlchemyDespachoRepository
+from airline.adapters.repository import SqlAlchemyDespachoRepository, SqlAlchemyVoosParaDespacho
 from airline.service_layer.services import DespachoService
 from airline.domain.model import ErroRegraDespacho
 from airline.domain.exception import DespachoNaoEncontrado
@@ -121,7 +121,7 @@ def abrir_despacho():
     data = request.get_json()
     session = SessionFactory()
     repo = SqlAlchemyDespachoRepository(session)
-    service = DespachoService(repo)
+    service = DespachoService(repo, SqlAlchemyVoosParaDespacho(session))
 
     try:
         despacho = service.abrir_despacho(
@@ -144,7 +144,7 @@ def adicionar_volume(despacho_id):
     data = request.get_json()
     session = SessionFactory()
     repo = SqlAlchemyDespachoRepository(session)
-    service = DespachoService(repo)
+    service = DespachoService(repo, SqlAlchemyVoosParaDespacho(session))
 
     try:
         despacho = service.adicionar_volume(uuid.UUID(despacho_id), peso=float(data["peso"]))
@@ -166,7 +166,7 @@ def adicionar_conteiner(despacho_id):
     data = request.get_json()
     session = SessionFactory()
     repo = SqlAlchemyDespachoRepository(session)
-    service = DespachoService(repo)
+    service = DespachoService(repo, SqlAlchemyVoosParaDespacho(session))
 
     try:
         despacho = service.adicionar_conteiner(
@@ -195,7 +195,7 @@ def adicionar_conteiner(despacho_id):
 def consultar_despacho(despacho_id):
     session = SessionFactory()
     repo = SqlAlchemyDespachoRepository(session)
-    service = DespachoService(repo)
+    service = DespachoService(repo, SqlAlchemyVoosParaDespacho(session))
 
     try:
         despacho = service.consultar_despacho(uuid.UUID(despacho_id))

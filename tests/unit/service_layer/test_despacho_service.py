@@ -2,7 +2,7 @@ import uuid
 import pytest
 
 from airline.domain.model import Despacho, Volume, ErroRegraDespacho
-from airline.domain.repositories import DespachoRepository
+from airline.domain.repositories import DespachoRepository, VoosParaDespacho
 from airline.domain.exception import DespachoNaoEncontrado
 from airline.service_layer.services import DespachoService
 
@@ -25,11 +25,21 @@ class FakeDespachoRepository(DespachoRepository):
         return None
 
 
+class FakeVoosParaDespacho(VoosParaDespacho):
+    # implementa so a pergunta que o despacho faz; nao existe salvar nem buscar Voo aqui
+
+    def __init__(self, agendados=("MV-3000",)):
+        self.agendados = set(agendados)
+
+    def aceita_despacho(self, voo_id):
+        return voo_id in self.agendados
+
+
 #----testes
 
 def test_abrir_despacho():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     despacho = service.abrir_despacho(voo_id="MV-3000", carga_maxima=1000)
 
@@ -43,7 +53,7 @@ def test_abrir_despacho():
 
 def test_nao_deve_abrir_dois_despachos_para_o_mesmo_voo():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     service.abrir_despacho(voo_id="MV-3000", carga_maxima=1000)
 
@@ -55,7 +65,7 @@ def test_nao_deve_abrir_dois_despachos_para_o_mesmo_voo():
 
 def test_adicionar_volume():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     despacho = service.abrir_despacho(voo_id="MV-3000", carga_maxima=1000)
 
@@ -68,7 +78,7 @@ def test_adicionar_volume():
 
 def test_adicionar_volume_acima_da_carga_maxima():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     despacho = service.abrir_despacho(voo_id="MV-3000", carga_maxima=1000)
     service.adicionar_volume(despacho.id, peso=900)
@@ -81,7 +91,7 @@ def test_adicionar_volume_acima_da_carga_maxima():
 
 def test_adicionar_volume_em_despacho_inexistente():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     with pytest.raises(DespachoNaoEncontrado):
         service.adicionar_volume(uuid.uuid4(), peso=100)
@@ -89,7 +99,7 @@ def test_adicionar_volume_em_despacho_inexistente():
 
 def test_consultar_despacho():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     despacho = Despacho(voo_id="MV-3000", carga_maxima=1000)
     despacho.adicionar_volume(Volume(peso=300))
@@ -103,7 +113,7 @@ def test_consultar_despacho():
 
 def test_consultar_despacho_inexistente():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     with pytest.raises(DespachoNaoEncontrado):
         service.consultar_despacho(uuid.uuid4())
@@ -111,7 +121,7 @@ def test_consultar_despacho_inexistente():
 
 def test_consultar_peso_disponivel():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     despacho = service.abrir_despacho(voo_id="MV-3000", carga_maxima=1000)
     service.adicionar_volume(despacho.id, peso=250)
@@ -121,7 +131,7 @@ def test_consultar_peso_disponivel():
 
 def test_consultar_peso_disponivel_de_despacho_inexistente():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     with pytest.raises(DespachoNaoEncontrado):
         service.consultar_peso_disponivel(uuid.uuid4())
@@ -129,7 +139,7 @@ def test_consultar_peso_disponivel_de_despacho_inexistente():
 
 def test_adicionar_conteiner_com_volumes():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     despacho = service.abrir_despacho(voo_id="MV-3000", carga_maxima=1000)
     service.adicionar_volume(despacho.id, peso=100)
@@ -142,7 +152,7 @@ def test_adicionar_conteiner_com_volumes():
 
 def test_adicionar_conteiner_acima_da_carga_maxima():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     despacho = service.abrir_despacho(voo_id="MV-3000", carga_maxima=200)
 
@@ -154,7 +164,33 @@ def test_adicionar_conteiner_acima_da_carga_maxima():
 
 def test_adicionar_conteiner_em_despacho_inexistente():
     repo = FakeDespachoRepository()
-    service = DespachoService(repo)
+    service = DespachoService(repo, FakeVoosParaDespacho())
 
     with pytest.raises(DespachoNaoEncontrado):
         service.adicionar_conteiner(uuid.uuid4(), codigo="AKE12345AA", tara=80, pesos_volumes=[20])
+
+
+# ---- ISP: o servico pergunta ao VoosParaDespacho antes de abrir o despacho
+
+def test_nao_deve_abrir_despacho_para_voo_inexistente_ou_nao_agendado():
+    repo = FakeDespachoRepository()
+    service = DespachoService(repo, FakeVoosParaDespacho(agendados=["MV-3000"]))
+
+    with pytest.raises(ErroRegraDespacho, match="nao esta agendado"):
+        service.abrir_despacho(voo_id="XX-999", carga_maxima=1000)
+
+    assert repo.despachos == {}
+
+
+def test_abrir_despacho_consulta_apenas_se_o_voo_aceita_despacho():
+    perguntas = []
+
+    class VoosQueRegistram(VoosParaDespacho):
+        def aceita_despacho(self, voo_id):
+            perguntas.append(voo_id)
+            return True
+
+    service = DespachoService(FakeDespachoRepository(), VoosQueRegistram())
+    service.abrir_despacho(voo_id="MV-3000", carga_maxima=1000)
+
+    assert perguntas == ["MV-3000"]

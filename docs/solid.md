@@ -281,3 +281,84 @@ Antes de refatorar, adicionei testes de unidade em `tests/unit/domain/test_tripu
 A refatoração introduziu uma classe adicional (`ControleJornada`) e um nível de indireção através de properties delegadas em `Tripulante`. O custo é pequeno diante do ganho: as regras de jornada agora podem evoluir de forma independente das informações de cadastro, e a verificação de limites regulamentares pode ser testada isoladamente em memória sem a necessidade de instanciar entidades complexas.
 
 ## Despacho, Vinicius Duarte
+
+### Princípio violado: Segregação de Interface (ISP)
+
+Esta seção foi entregue depois do prazo do checkpoint 2 (03/11).
+
+### Mudança de requisito que expõe a violação
+
+O `DespachoService` da Fase 1 (commit `3a1b43c`, 29/09) abre um despacho para qualquer `voo_id`, mesmo um voo que não existe ou que já foi cancelado. O ADR 0005 já apontava isso como consequência negativa.
+
+```python
+# service_layer/services.py, DespachoService (3a1b43c)
+class DespachoService:
+
+    def __init__(self, despacho_repository: DespachoRepository):
+        self.despacho_repository = despacho_repository
+
+    def abrir_despacho(self, voo_id, carga_maxima):
+        if self.despacho_repository.buscar_por_voo(voo_id) is not None:
+            raise ErroRegraDespacho("Ja existe um despacho aberto para este voo")
+
+        despacho = Despacho(voo_id=voo_id, carga_maxima=carga_maxima)
+        self.despacho_repository.salvar(despacho)
+        return despacho
+```
+
+O requisito novo é plausível na operação: **o despacho de carga só pode ser aberto para um voo que existe e ainda está agendado.** Não faz sentido embarcar bagagem num voo cancelado ou já realizado.
+
+O código existente não acomoda essa mudança sem ferir o ISP. A única porta que o sistema tinha para chegar a um voo era o `VooRepository` (commit `6c1ae4e`, 26/09):
+
+```python
+# domain/repositories.py (6c1ae4e)
+class VooRepository(ABC):
+    def salvar(self, voo: Voo) -> None: ...
+    def buscar(self, numero_voo: str): ...
+```
+
+Para cumprir o requisito com ele, o `DespachoService` teria de receber o `VooRepository` inteiro.
+
+### O problema
+
+- **O Despacho passaria a depender de métodos que não usa.** Ele só precisa de uma resposta (sim ou não), mas receberia `salvar(voo)` junto. Um serviço de outro agregado com poder de gravar o Voo contraria a separação dos agregados do ADR 0005.
+- **Ele dependeria do Voo inteiro.** `buscar` devolve o agregado completo, e o Despacho teria de conhecer `StatusVoo` e os detalhes do Voo para decidir. Qualquer mudança no contrato do `VooRepository` (que é do Verdan) passaria a afetar o Despacho.
+- **Os testes ficariam mais pesados.** O fake do teste de serviço do Despacho teria de implementar `salvar` e `buscar` e montar objetos `Voo` com trecho, aeronave e capacidade, só para responder "o voo está agendado?".
+
+### A refatoração
+
+Criei uma interface pequena, do tamanho do que o Despacho precisa, no domínio:
+
+```python
+# domain/repositories.py
+class VoosParaDespacho(ABC):
+    @abstractmethod
+    def aceita_despacho(self, voo_id: str) -> bool:
+        pass
+```
+
+- O `DespachoService` recebe `VoosParaDespacho` no construtor, e o `abrir_despacho` pergunta `aceita_despacho(voo_id)` antes de tudo. Se a resposta for não, lança `ErroRegraDespacho("Voo nao encontrado ou nao esta agendado")`, que a API já transforma em 400.
+- A implementação real é a `SqlAlchemyVoosParaDespacho` (`adapters/repository.py`). Ela só lê a coluna `status` da tabela `voos`, sem montar um `Voo` e sem ter como alterá-lo.
+- O `flask_app.py` passa a `SqlAlchemyVoosParaDespacho(session)` nas rotas de despacho.
+- Não alterei nenhuma classe do Voo: o `VooRepository` e o `VooService` continuam iguais.
+
+Commit "depois": `<hash>` (16/11).
+
+### Como os testes garantiram o comportamento
+
+- **Testes de serviço antigos** (`test_despacho_service.py`): os 12 testes que já existiam continuam com os mesmos asserts. Só mudou a montagem do serviço, que agora recebe um `FakeVoosParaDespacho`. O fake tem 4 linhas de lógica, porque implementa apenas `aceita_despacho`.
+- **Novos testes:**
+  - `test_nao_deve_abrir_despacho_para_voo_inexistente_ou_nao_agendado` (serviço);
+  - `test_abrir_despacho_consulta_apenas_se_o_voo_aceita_despacho` (serviço), que confere que o serviço só faz essa pergunta ao voo;
+  - `test_voos_para_despacho_aceita_so_voo_agendado` (integração), que testa AGENDADO, CANCELADO, REALIZADO e voo inexistente, inserindo os voos com SQL puro;
+  - `test_api_erro_ao_abrir_despacho_para_voo_inexistente` (e2e).
+- **Testes e2e de despacho:** os 7 testes antigos que abrem despacho agora gravam o voo `MV-3000` como agendado antes. Os asserts continuam iguais.
+- A suíte completa passa: 203 testes.
+
+### Custo
+
+- **Mais uma interface e mais uma classe.** São `VoosParaDespacho` e `SqlAlchemyVoosParaDespacho`, e o `DespachoService` ganhou mais uma dependência no construtor.
+- **Duas formas de ler a tabela de voos.** O `SqlAlchemyVoosParaDespacho` lê a tabela `voos` direto, sem passar pelo `VooRepository`. Se o Verdan mudar como o status é gravado, o adaptador do Despacho também precisa mudar. O teste de integração existe para pegar isso.
+- **Testes e2e mais longos.** Os testes de despacho precisam criar um voo antes, e todos os testes de serviço do Despacho mudaram a linha de montagem.
+
+O custo compensa porque o Despacho continua sem poder alterar o Voo. A regra nova ficou numa linha do serviço, e o fake de teste continua trivial. Se o Despacho dependesse do `VooRepository` inteiro, cada mudança naquele contrato quebraria o Despacho, que nunca usou a maior parte dele.

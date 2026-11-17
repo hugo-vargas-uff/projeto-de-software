@@ -206,3 +206,25 @@ def test_salvar_de_novo_despacho_com_conteiner_nao_duplica_linhas(session):
     total = session.execute(text("SELECT COUNT(*) FROM despacho_volumes")).scalar()
     assert total == 3
     assert repo.buscar_por_id(despacho.id).peso_total() == 150
+
+
+# ---- ISP: adaptador que so responde se o voo aceita despacho
+
+from airline.adapters.repository import SqlAlchemyVoosParaDespacho
+
+
+def test_voos_para_despacho_aceita_so_voo_agendado(session):
+    session.execute(text("""
+        INSERT INTO voos (numero_voo, origem, destino, aeronave_id, assentos_disponiveis, status) VALUES
+            ('MV-1', 'GRU', 'GIG', 'PR-400', 150, 'AGENDADO'),
+            ('MV-2', 'GRU', 'GIG', 'PR-400', 150, 'CANCELADO'),
+            ('MV-3', 'GRU', 'GIG', 'PR-400', 150, 'REALIZADO')
+    """))
+    session.commit()
+
+    voos = SqlAlchemyVoosParaDespacho(session)
+
+    assert voos.aceita_despacho("MV-1") is True
+    assert voos.aceita_despacho("MV-2") is False
+    assert voos.aceita_despacho("MV-3") is False
+    assert voos.aceita_despacho("NAO-EXISTE") is False
