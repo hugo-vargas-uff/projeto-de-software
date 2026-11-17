@@ -1048,3 +1048,15 @@ Analisei os frameworks utilizados no projeto (Flask, SQLAlchemy e pytest), docum
 **Uso de IA:** Utilizei o ChatGPT para compreender melhor as responsabilidades de cada framework, identificar como aparecem no código do projeto e revisar a explicação sobre a independência do domínio. Também utilizei a ferramenta para conferir a precisão dos conceitos e melhorar a redação da documentação.
 
 **Arquivos envolvidos:** `docs/frameworks.md`.
+
+## Parágrafo de Reflexão
+
+### Hugo Vargas (@hugo-vargas-uff)
+
+#### Reflexão sobre a Fase 2
+
+Durante a Fase 2, aprofundei meu entendimento sobre arquitetura de software e sobre a importância de organizar o código de forma que cada componente tenha responsabilidades bem definidas. Aprendi como princípios SOLID, especialmente o Princípio da Responsabilidade Única, contribuem para reduzir o acoplamento e facilitar a manutenção. Também compreendi melhor a aplicação de Value Objects e padrões de projeto, como Chain of Responsibility, percebendo como essas abordagens podem ajudar a organizar regras de negócio e tornar o código mais flexível.
+
+Outro aprendizado foi entender melhor a separação entre domínio, serviços e adaptadores, além da independência do domínio em relação a frameworks como Flask e SQLAlchemy. A implementação e análise dos testes unitários, de integração e E2E também reforçaram a importância de validar o comportamento do sistema em diferentes níveis.
+
+Se pudesse fazer algo diferente, procuraria escrever testes desde os primeiros passos de cada funcionalidade, em vez de deixá-los para etapas posteriores. Acredito que isso teria reduzido retrabalho e facilitado a identificação de problemas durante o desenvolvimento. No geral, a fase contribuiu para que eu compreendesse melhor como implementar funcionalidades e tomar decisões de projeto pensando na organização, manutenção e evolução do software.
