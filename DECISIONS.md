@@ -1059,6 +1059,7 @@ Arquivos: `docs/retrospectiva.md`, `DECISIONS.md`
 
 Commits:
 - `9a37341` - 16/11 - docs: evidencias da Aeronave na retrospectiva
+- `d942f9e` - 17/11 - docs: padroniza autoria de Matheus no mailmap
 
 #### Uso de IA
 
