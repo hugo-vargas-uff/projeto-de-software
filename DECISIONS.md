@@ -1115,3 +1115,13 @@ Na Fase 2 do projeto, o aprendizado mais marcante foi vivenciar na prática que 
 Por outro lado, compreendi o custo real da complexidade acidental. Sustentar a separação estrita entre as entidades de domínio e as tabelas relacionais em orm.py exigiu manter manualmente conversores bidirecionais e repositórios em memória, gerando centenas de linhas de código puramente mecânico de infraestrutura. Em um sistema com poucos agregados, essa cerimônia pesou no dia a dia da equipe.
 
 Se fosse recomeçar o projeto hoje com o conhecimento adquirido, eu adotaria desde o início uma abordagem mais pragmática: utilizaria o SQLAlchemy 2.0 com mapeamento declarativo integrado a dataclasses, o que manteria o domínio testável e puro, mas eliminaria a necessidade de classes ORM duplicadas e conversores manuais. Além disso, substituiria os repositórios falsos por testes rápidos com SQLite em memória, evitando os riscos de divergência entre implementações. No geral, a experiência transformou minha visão sobre design de software, evidenciando que a clareza dos limites arquiteturais e a simplicidade técnica valem mais do que o excesso de camadas.
+
+### Matheus Verdan (@verdanmatheus)
+
+#### Reflexão sobre a Fase 2
+
+Na Fase 1, eu seguia a divisão em camadas porque a disciplina pedia, sem pensar muito no motivo. Quando escrevi os cenários de qualidade no início da Fase 2, entendi qual atributo cada camada ajudava a garantir, e as refatorações mostraram isso na prática, porque a tabela de transições do Voo mexeu só no domínio e o Observer entrou sem alterar o `model.py`. Também aprendi que um padrão pode resolver um problema e deixar outro aberto. O Observer acabou com a limitação que eu tinha registrado em setembro, mas a reserva nova num voo cancelado continuou possível, e só percebi isso quando revisei a decisão depois de implementar.
+
+O que mais me surpreendeu foi o quanto o meu agregado dependia dos outros. Para o observador funcionar, o repositório da Reserva precisou de uma correção e de um método novo, e eu tive que combinar essas mudanças com o dono do agregado antes de ligar o observador na API. Na semana do checkpoint 3, quatro pessoas alteraram o `services.py`, e aprendi a resolver pushes recusados trazendo o trabalho dos colegas sem reescrever o histórico, além de juntar as minhas identidades de autor com o `.mailmap`.
+
+Se fosse começar de novo, dividiria as rotas da API desde a Fase 1, com um Blueprint do Flask por agregado, para que cada integrante mexesse no próprio arquivo. Também escreveria cedo testes de API para as regras que envolvem dois agregados, como a de não aceitar reserva em voo cancelado, porque foram elas que deram mais trabalho depois.
