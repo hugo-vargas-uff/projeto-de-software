@@ -1064,6 +1064,25 @@ Commits:
 
 Utilizei o Claude Code como apoio na redação de quatro trechos da docs/retrospectiva.md relacionados à Aeronave. Orientei a ferramenta sobre o conteúdo que deveria ser escrito, com base nas atividades que realizei nos checkpoints 2 e 3. Depois, revisei os textos para garantir que as informações estivessem corretas e de acordo com o trabalho desenvolvido. A reflexão e as decisões apresentadas são minhas.
 
+### Filipe Moreira (@Filipe-Moreira-sb)
+
+#### O que eu fiz
+
+- Concluí a documentação de `docs/frameworks.md`, redigindo a Seção 3 (mapeamento e análise dos padrões de projeto internos dos frameworks: Decorator no Flask, Data Mapper e Proxy no SQLAlchemy, e Factory/Dependency Injection nas fixtures do pytest) e a Seção 4 (análise aprofundada comparando a arquitetura adotada com um framework full-stack como o Django).
+- Estruturei e redigi a `docs/retrospectiva.md`, confrontando as previsões de qualidade e trade-offs do Checkpoint 1 com as evidências reais da Fase 2, analisando o impacto prático das camadas nas refatorações e embasando a decisão final do grupo.
+
+Arquivos: `docs/frameworks.md`, `docs/retrospectiva.md`, `DECISIONS.md`
+
+Commits:
+- `8b6be6c` — 16/11 — docs: detalha padroes internos dos frameworks e analise comparativa com Django
+- `f5cc727` — 16/11 — docs: adiciona retrospectiva arquitetural completa da Fase 2
+
+#### Uso de IA
+2026-11-17
+
+Utilizei o assistente de IA generativa como suporte para revisar a precisão conceitual dos padrões internos dos frameworks (Data Mapper vs Active Record), confrontar métricas de teste do repositório para a retrospectiva e validar a clareza da argumentação comparativa com o ecossistema Django. Todas as conclusões arquiteturais, análises de trade-offs e revisões foram validadas e aprovadas por mim.
+
+
 ## Parágrafo de Reflexão
 
 ### Hugo Vargas (@hugo-vargas-uff)
@@ -1085,3 +1104,13 @@ Durante a Fase 2 do projeto, uma das principais coisas que aprendi foi que ter o
 Outra coisa importante que aprendi foi a importância de testar o comportamento do código antes de fazer uma refatoração. Na implementação do padrão Strategy, os oito casos de teste passaram antes e depois das alterações, o que me deu mais segurança para modificar o método `esta_disponivel`. Também percebi que utilizar padrões de projeto nem sempre significa deixar o código mais simples, já que o Strategy exigiu a criação de mais classes para uma lógica que antes era bem pequena. Mesmo assim, entendi que ele pode ser útil pensando em futuras mudanças no sistema.
 
 Se eu fosse começar o projeto novamente, teria criado os testes de contrato desde a Fase 1, pois isso teria ajudado a identificar os problemas mais cedo. Também mudaria a forma como utilizei a inteligência artificial. Na Fase 2, usei bastante a ferramenta para auxiliar na implementação, mas acredito que teria aproveitado melhor o aprendizado se tivesse escrito uma primeira versão do código por conta própria, com leves consultas na internet (saudoso stack overflow) e utilizado a IA posteriormente, principalmente para revisar, identificar erros e sugerir melhorias.
+
+### Filipe Moreira (@Filipe-Moreira-sb)
+
+#### Reflexão sobre a Fase 2
+
+Na Fase 2 do projeto, o aprendizado mais marcante foi vivenciar na prática que arquitetura de software não é sobre aplicar todos os padrões existentes, mas sim sobre gerenciar trade-offs intencionais. Ao implementar a refatoração SOLID de Responsabilidade Única no Tripulante (extraindo o ControleJornada) e o padrão GoF State na Escala, percebi como o isolamento do domínio puro facilita a proteção de invariantes de negócio sem quebrar contratos externos. A suíte de mais de 200 testes automatizados provou ser uma rede de segurança indispensável, permitindo refatorações estruturais agressivas com feedback instantâneo de poucos segundos.
+
+Por outro lado, compreendi o custo real da complexidade acidental. Sustentar a separação estrita entre as entidades de domínio e as tabelas relacionais em orm.py exigiu manter manualmente conversores bidirecionais e repositórios em memória, gerando centenas de linhas de código puramente mecânico de infraestrutura. Em um sistema com poucos agregados, essa cerimônia pesou no dia a dia da equipe.
+
+Se fosse recomeçar o projeto hoje com o conhecimento adquirido, eu adotaria desde o início uma abordagem mais pragmática: utilizaria o SQLAlchemy 2.0 com mapeamento declarativo integrado a dataclasses, o que manteria o domínio testável e puro, mas eliminaria a necessidade de classes ORM duplicadas e conversores manuais. Além disso, substituiria os repositórios falsos por testes rápidos com SQLite em memória, evitando os riscos de divergência entre implementações. No geral, a experiência transformou minha visão sobre design de software, evidenciando que a clareza dos limites arquiteturais e a simplicidade técnica valem mais do que o excesso de camadas.
