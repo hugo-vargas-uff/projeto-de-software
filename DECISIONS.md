@@ -1083,6 +1083,32 @@ Commits:
 
 Utilizei o assistente de IA generativa como suporte para revisar a precisão conceitual dos padrões internos dos frameworks (Data Mapper vs Active Record), confrontar métricas de teste do repositório para a retrospectiva e validar a clareza da argumentação comparativa com o ecossistema Django. Todas as conclusões arquiteturais, análises de trade-offs e revisões foram validadas e aprovadas por mim.
 
+### Matheus Verdan (@verdanmatheus) - Agregado Voo
+
+#### O que eu fiz
+
+- Criei o docs/frameworks.md e o docs/retrospectiva.md com as seções que o enunciado pede, para o grupo dividir o trabalho.
+- No frameworks.md, escrevi os pontos de inversão de controle com a rota de cancelar voo, as fixtures `client` e `session_factory`, que criei na Fase 1, e o mapeamento do `VooModel`, mostrando também o SQLAlchemy no papel de biblioteca.
+- Revisei o frameworks.md e a retrospectiva.md antes da entrega e apontei ao grupo três correções, feitas depois pelo autor das seções: a reserva que a API ainda aceitava num voo cancelado, ao contrário do que dizia o cenário de corretude, a medida do cenário de testabilidade, que eu tinha definido no checkpoint 1, e o padrão Decorator atribuído ao `@app.route`.
+
+Arquivos: docs/frameworks.md, docs/retrospectiva.md, DECISIONS.md
+
+Commits:
+- b7897ff - 16/11 - docs: add esqueleto de frameworks e retrospectiva
+- c20cbb0 - 16/11 - docs: pontos de inversao de controle no frameworks
+- 340a16c - 17/11 - docs: reflexao da fase 2
+
+#### Decisão: mostrar o SQLAlchemy nos dois papéis
+2026-11-16
+
+O enunciado pede a diferença entre usar um framework e usar uma biblioteca, e o SQLAlchemy permitia mostrar as duas coisas no próprio código do Voo. No mapeamento do `VooModel`, é o SQLAlchemy que lê a nossa classe e cria a tabela, e no `VooService` somos nós que chamamos `session.commit()` na hora de gravar. Preferi esse exemplo a um caso de biblioteca pura, como o `uuid`, porque ele mostra que uma mesma ferramenta pode ter os dois papéis e que o que muda é quem decide quando o código roda.
+
+#### Uso de IA
+
+#### Uso de IA
+
+Utilizei o Claude como apoio durante o desenvolvimento desta entrega, principalmente para discutir a aplicação de inversão de controle no código do Voo e revisar a documentação do projeto. As sugestões de correção foram avaliadas antes de serem levadas ao grupo. Também utilizei a ferramenta como auxílio na organização e revisão dos textos desta entrega, que foram ajustados antes de serem incorporados ao projeto.
+
 
 ## Parágrafo de Reflexão
 
