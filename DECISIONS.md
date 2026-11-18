@@ -1122,7 +1122,7 @@ Arquivos: `src/airline/domain/repositories.py`, `src/airline/service_layer/servi
 
 Commits:
 - `17aaae1` — 16/11 — refactor: despacho depende so de VoosParaDespacho para abrir (ISP)
-- `<hash>` — 17/11 — docs: retrospectiva com evidencias do Despacho e autorrelato final
+- `74185de` — 18/11 — docs: retrospectiva com evidencias do Despacho e autorrelato final
 
 #### Decisão: o adaptador lê a tabela de voos em vez de reaproveitar o `VooRepository`
 
