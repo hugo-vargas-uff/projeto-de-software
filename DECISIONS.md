@@ -1105,8 +1105,6 @@ O enunciado pede a diferença entre usar um framework e usar uma biblioteca, e o
 
 #### Uso de IA
 
-#### Uso de IA
-
 Utilizei o Claude como apoio durante o desenvolvimento desta entrega, principalmente para discutir a aplicação de inversão de controle no código do Voo e revisar a documentação do projeto. As sugestões de correção foram avaliadas antes de serem levadas ao grupo. Também utilizei a ferramenta como auxílio na organização e revisão dos textos desta entrega, que foram ajustados antes de serem incorporados ao projeto.
 
 
