@@ -342,7 +342,7 @@ class VoosParaDespacho(ABC):
 - O `flask_app.py` passa a `SqlAlchemyVoosParaDespacho(session)` nas rotas de despacho.
 - Não alterei nenhuma classe do Voo: o `VooRepository` e o `VooService` continuam iguais.
 
-Commit "depois": `<hash>` (16/11).
+Commit "depois": `17aaae1` (16/11).
 
 ### Como os testes garantiram o comportamento
 

@@ -1108,6 +1108,39 @@ O enunciado pede a diferença entre usar um framework e usar uma biblioteca, e o
 Utilizei o Claude como apoio durante o desenvolvimento desta entrega, principalmente para discutir a aplicação de inversão de controle no código do Voo e revisar a documentação do projeto. As sugestões de correção foram avaliadas antes de serem levadas ao grupo. Também utilizei a ferramenta como auxílio na organização e revisão dos textos desta entrega, que foram ajustados antes de serem incorporados ao projeto.
 
 
+### Vinicius Duarte (@DEVinicius-jpeg) — Agregado Despacho
+
+#### O que eu fiz
+
+- **Refatoração SOLID do Despacho, entregue depois do prazo do checkpoint 2 (03/11).** O novo requisito era abrir despacho só para um voo que existe e está agendado. Para atendê-lo sem fazer o `DespachoService` depender do `VooRepository` inteiro, criei a interface `VoosParaDespacho`, com um único método (`aceita_despacho`), e o adaptador `SqlAlchemyVoosParaDespacho`, que só lê o status do voo (ISP). Documentei a refatoração em `docs/solid.md`.
+- **Retrospectiva.** Acrescentei em `docs/retrospectiva.md` as evidências do Despacho, nas duas listas da seção 2:
+  - onde as camadas ajudaram: o Composite entrou no domínio num commit de 2 arquivos;
+  - onde atrapalharam: persistir a árvore de contêineres e ligar o Despacho ao Voo atravessaram todas as camadas.
+- Escrevi esta subseção e a reflexão abaixo.
+
+Arquivos: `src/airline/domain/repositories.py`, `src/airline/service_layer/services.py`, `src/airline/adapters/repository.py`, `src/airline/entrypoints/flask_app.py`, `tests/unit/service_layer/test_despacho_service.py`, `tests/integration/adapter/test_SqlAlchemyDespachoRepository.py`, `tests/e2e/test_api.py`, `docs/solid.md`, `docs/retrospectiva.md`, `DECISIONS.md`
+
+Commits:
+- `17aaae1` — 16/11 — refactor: despacho depende so de VoosParaDespacho para abrir (ISP)
+- `<hash>` — 17/11 — docs: retrospectiva com evidencias do Despacho e autorrelato final
+
+#### Decisão: o adaptador lê a tabela de voos em vez de reaproveitar o `VooRepository`
+
+2026-11-16
+
+O `SqlAlchemyVoosParaDespacho` poderia chamar `SqlAlchemyVooRepository.buscar` e olhar o status do `Voo` devolvido. Preferi consultar só a coluna `status` da tabela `voos`, porque assim o Despacho não carrega o agregado Voo nem depende do contrato do repositório de outro integrante. O custo é que o adaptador conhece o formato em que o status é gravado; o teste de integração `test_voos_para_despacho_aceita_so_voo_agendado` existe para avisar se esse formato mudar.
+
+#### Uso de IA
+
+Usei o Claude Code (assistente de IA da Anthropic, dentro do VS Code) nesta etapa:
+
+- Pedi ajuda para recuperar a refatoração SOLID que ficou pendente e para fechar a entrega final.
+- A IA propôs a violação (ISP, a partir do requisito de só abrir despacho para voo agendado), escreveu a interface, o adaptador, a mudança no serviço e os testes, redigiu a seção do `solid.md`, o trecho da retrospectiva e a primeira versão desta subseção, e rodou a suíte de testes.
+- Eu revisei o código e os textos, conferi os hashes citados e fiz os commits.
+- A reflexão abaixo foi escrita a partir do que aconteceu comigo na Fase 2, e eu a ajustei para as minhas palavras.
+
+A responsabilidade pelo resultado é minha.
+
 ## Parágrafo de Reflexão
 
 ### Hugo Vargas (@hugo-vargas-uff)
@@ -1149,3 +1182,11 @@ Na Fase 1, eu seguia a divisão em camadas porque a disciplina pedia, sem pensar
 O que mais me surpreendeu foi o quanto o meu agregado dependia dos outros. Para o observador funcionar, o repositório da Reserva precisou de uma correção e de um método novo, e eu tive que combinar essas mudanças com o dono do agregado antes de ligar o observador na API. Na semana do checkpoint 3, quatro pessoas alteraram o `services.py`, e aprendi a resolver pushes recusados trazendo o trabalho dos colegas sem reescrever o histórico, além de juntar as minhas identidades de autor com o `.mailmap`.
 
 Se fosse começar de novo, dividiria as rotas da API desde a Fase 1, com um Blueprint do Flask por agregado, para que cada integrante mexesse no próprio arquivo. Também escreveria cedo testes de API para as regras que envolvem dois agregados, como a de não aceitar reserva em voo cancelado, porque foram elas que deram mais trabalho depois.
+
+### Vinicius Duarte (@DEVinicius-jpeg)
+
+#### Reflexão sobre a Fase 2
+
+A Fase 2 me mostrou que uma decisão de fronteira entre agregados pesa mais que qualquer padrão. Tirar o Despacho de dentro da Aeronave (ADR 0005) deixou o meu agregado pequeno e fácil de testar, e o Composite entrou no domínio num commit de dois arquivos, sem tocar em mais nada. Só que a mesma separação cobrou depois: abrir despacho apenas para voo agendado exigiu uma interface nova, um adaptador e mudanças nos testes e2e, porque o Despacho não sabia nada sobre o Voo. Aprendi que o ISP não é só "interfaces pequenas": a interface `VoosParaDespacho` é uma forma de dizer, no código, exatamente o que um agregado pode perguntar ao outro. Também aprendi que o custo real de um padrão aparece na persistência. A árvore de contêineres foi trivial em memória e trabalhosa no banco.
+
+O que eu faria diferente é o processo. Perdi o prazo do checkpoint 2 e entreguei a refatoração SOLID só na entrega final, o que me deixou sem commits naquele período. Faria commits pequenos toda semana, mesmo que fossem só testes, em vez de concentrar o trabalho perto dos prazos. Também usaria a IA mais cedo para revisar as minhas ideias, e não para destravar entregas atrasadas, porque assim as decisões ficariam mais minhas e mais bem pensadas.
