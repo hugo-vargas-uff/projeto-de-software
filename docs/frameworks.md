@@ -102,22 +102,7 @@ A diferença entre uma biblioteca e um framework está em quem controla o fluxo 
 
 Os frameworks que utilizamos não são apenas coleções de funções; internamente, eles são construídos sobre padrões consolidados de projeto de software (GoF e padrões de arquitetura corporativa de Martin Fowler). No nosso projeto, podemos apontar claramente onde pelo menos três desses padrões operam no código real:
 
-### Padrão 1: Decorator (GoF Estrutural) — Flask
-
-- **Onde aparece no nosso código:** Em `src/airline/entrypoints/flask_app.py`, em todas as definições de rotas da API, como:
-  ```python
-  @app.route("/voos/<numero_voo>/cancelar", methods=["POST"])
-  def cancelar_voo(numero_voo):
-  ...
-  @app.post("/tripulantes")
-  def cadastrar_tripulante():
-  ...
-  @app.get("/escalas/<voo_id>")
-  def buscar_escala(voo_id):
-  ```
-- **Como o framework usa internamente:** O Flask utiliza o padrão estrutural Decorator para interceptar a função manipuladora de requisição (`view function`). Em vez de exigir que a nossa função herde de uma classe base de endpoint ou registre rotas manualmente em coleções externas, o decorator `@app.route` "embrulha" a função, extrai seus metadados, registra a regra no mapa de URLs (`url_map`) do Flask e a devolve intacta. Quando uma requisição HTTP chega, o framework executa comportamentos antes e depois da chamada da função (como parsing de parâmetros da URL e formatação da resposta), exemplificando a extensão de comportamento dinâmico sem alterar a estrutura da função decorada.
-
-### Padrão 2: Data Mapper (Fowler / Padrão de Persistência) — SQLAlchemy
+### Padrão 1: Data Mapper (Fowler / Padrão de Persistência) — SQLAlchemy
 
 - **Onde aparece no nosso código:** Na separação estrita entre as entidades puras em `src/airline/domain/model.py` (`Tripulante`, `Escala`, `Voo`, `Aeronave`) e as classes de persistência em `src/airline/adapters/orm.py` (`TripulanteModel`, `EscalaModel`, `VooModel`, `AeronaveModel`), integradas através dos métodos `from_domain()` e `to_domain()`:
   ```python
@@ -132,7 +117,7 @@ Os frameworks que utilizamos não são apenas coleções de funções; intername
   ```
 - **Como o framework usa internamente:** Ao contrário do padrão Active Record (onde a entidade de negócio herda do ORM e sabe salvar a si mesma no banco), o SQLAlchemy adota o padrão Data Mapper. O framework mantém uma camada de mapeamento independente responsável por transferir dados entre os objetos em memória e o esquema relacional do banco. Dessa forma, as nossas classes de domínio permanecem completamente desvinculadas de SQL, tipos de colunas, chaves primárias de banco ou chamadas de I/O, garantindo que o domínio permaneça puro e focado apenas nas regras de negócio.
 
-### Padrão 3: Proxy / Lazy Loading (GoF Estrutural) — SQLAlchemy
+### Padrão 2: Proxy / Lazy Loading (GoF Estrutural) — SQLAlchemy
 
 - **Onde aparece no nosso código:** Nas definições de relacionamentos entre tabelas em `src/airline/adapters/orm.py`, como nas relações de `EscalaModel` com `EscalaTripulanteModel` e de `AeronaveModel` com `OrdemManutencaoModel`:
   ```python
@@ -144,7 +129,7 @@ Os frameworks que utilizamos não são apenas coleções de funções; intername
   ```
 - **Como o framework usa internamente:** O SQLAlchemy utiliza objetos Proxy para intermediar o acesso a coleções e objetos relacionados. Quando uma `Escala` ou `Aeronave` é consultada no banco, o SQLAlchemy não executa imediatamente junções complexas com todas as tabelas filhas. Em vez disso, ele instancia uma coleção especial instrumentada que funciona como um Proxy Virtual (Lazy Loading). A leitura dos registros relacionados só é disparada quando o código de fato itera ou acessa o atributo, economizando memória e transferências desnecessárias de dados.
 
-### Padrão 4: Factory / Dependency Injection (GoF Criacional) — pytest
+### Padrão 3: Factory / Dependency Injection (GoF Criacional) — pytest
 
 - **Onde aparece no nosso código:** Em `tests/conftest.py`, nas definições das fixtures `@pytest.fixture def client(session_factory)` e `@pytest.fixture def session_factory()`, e em todos os testes e2e que recebem `client` como argumento:
   ```python

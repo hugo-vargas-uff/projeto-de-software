@@ -1068,7 +1068,7 @@ Utilizei o Claude Code como apoio na redação de quatro trechos da docs/retrosp
 
 #### O que eu fiz
 
-- Concluí a documentação de `docs/frameworks.md`, redigindo a Seção 3 (mapeamento e análise dos padrões de projeto internos dos frameworks: Decorator no Flask, Data Mapper e Proxy no SQLAlchemy, e Factory/Dependency Injection nas fixtures do pytest) e a Seção 4 (análise aprofundada comparando a arquitetura adotada com um framework full-stack como o Django).
+- Concluí a documentação de `docs/frameworks.md`, redigindo a Seção 3 (mapeamento e análise dos padrões de projeto internos dos frameworks: Data Mapper e Proxy no SQLAlchemy, e Factory/Dependency Injection nas fixtures do pytest) e a Seção 4 (análise aprofundada comparando a arquitetura adotada com um framework full-stack como o Django).
 - Estruturei e redigi a `docs/retrospectiva.md`, confrontando as previsões de qualidade e trade-offs do Checkpoint 1 com as evidências reais da Fase 2, analisando o impacto prático das camadas nas refatorações e embasando a decisão final do grupo.
 
 Arquivos: `docs/frameworks.md`, `docs/retrospectiva.md`, `DECISIONS.md`
