@@ -1049,6 +1049,21 @@ Analisei os frameworks utilizados no projeto (Flask, SQLAlchemy e pytest), docum
 
 **Arquivos envolvidos:** `docs/frameworks.md`.
 
+### Matheus Andrade (@MatheusFSD)
+
+#### O que eu fiz
+
+Levei para a `docs/retrospectiva.md` as evidências do meu agregado, a Aeronave, que vêm do meu trabalho nos checkpoints 2 e 3: o repositório falso que escondia o `IntegrityError` (`e98040c`, `0353d3e`), o Strategy que mudou um único arquivo (`9a9f6c5`, `4606a68`) e o limite das regras que não são gravadas no banco. Também escrevi a minha reflexão abaixo.
+
+Arquivos: `docs/retrospectiva.md`, `DECISIONS.md`
+
+Commits:
+- `9a37341` - 16/11 - docs: evidencias da Aeronave na retrospectiva
+
+#### Uso de IA
+
+Utilizei o Claude Code como apoio na redação de quatro trechos da docs/retrospectiva.md relacionados à Aeronave. Orientei a ferramenta sobre o conteúdo que deveria ser escrito, com base nas atividades que realizei nos checkpoints 2 e 3. Depois, revisei os textos para garantir que as informações estivessem corretas e de acordo com o trabalho desenvolvido. A reflexão e as decisões apresentadas são minhas.
+
 ## Parágrafo de Reflexão
 
 ### Hugo Vargas (@hugo-vargas-uff)
@@ -1060,3 +1075,13 @@ Durante a Fase 2, aprofundei meu entendimento sobre arquitetura de software e so
 Outro aprendizado foi entender melhor a separação entre domínio, serviços e adaptadores, além da independência do domínio em relação a frameworks como Flask e SQLAlchemy. A implementação e análise dos testes unitários, de integração e E2E também reforçaram a importância de validar o comportamento do sistema em diferentes níveis.
 
 Se pudesse fazer algo diferente, procuraria escrever testes desde os primeiros passos de cada funcionalidade, em vez de deixá-los para etapas posteriores. Acredito que isso teria reduzido retrabalho e facilitado a identificação de problemas durante o desenvolvimento. No geral, a fase contribuiu para que eu compreendesse melhor como implementar funcionalidades e tomar decisões de projeto pensando na organização, manutenção e evolução do software.
+
+### Matheus Andrade (@MatheusFSD)
+
+#### Reflexão sobre a Fase 2
+
+Durante a Fase 2 do projeto, uma das principais coisas que aprendi foi que ter os testes passando não significa necessariamente que o sistema está funcionando corretamente. Um exemplo disso aconteceu com o repositório de Aeronave, já que o repositório falso permitia salvar uma aeronave duplicada, enquanto o banco de dados real apresentava um erro. Só consegui identificar essa diferença quando fiz o teste de contrato, que verificava o mesmo comportamento nas duas implementações.
+
+Outra coisa importante que aprendi foi a importância de testar o comportamento do código antes de fazer uma refatoração. Na implementação do padrão Strategy, os oito casos de teste passaram antes e depois das alterações, o que me deu mais segurança para modificar o método `esta_disponivel`. Também percebi que utilizar padrões de projeto nem sempre significa deixar o código mais simples, já que o Strategy exigiu a criação de mais classes para uma lógica que antes era bem pequena. Mesmo assim, entendi que ele pode ser útil pensando em futuras mudanças no sistema.
+
+Se eu fosse começar o projeto novamente, teria criado os testes de contrato desde a Fase 1, pois isso teria ajudado a identificar os problemas mais cedo. Também mudaria a forma como utilizei a inteligência artificial. Na Fase 2, usei bastante a ferramenta para auxiliar na implementação, mas acredito que teria aproveitado melhor o aprendizado se tivesse escrito uma primeira versão do código por conta própria, com leves consultas na internet (saudoso stack overflow) e utilizado a IA posteriormente, principalmente para revisar, identificar erros e sugerir melhorias.
